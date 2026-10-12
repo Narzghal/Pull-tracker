@@ -198,3 +198,9 @@ td.thin { font-style: italic; opacity: .8; }
 .seg + .seg { margin-left: .5rem; }
 
 .viewonly { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.4); color: #fff; padding: .45rem .9rem; border-radius: 999px; }
+
+/* ---------- Per-set color ---------- */
+/* The banner uses a darker shade of the set's color so white text stays readable; the full color shows as a stripe. */
+.banner.has-accent { background: color-mix(in srgb, var(--accent) 72%, #000); border-bottom: 8px solid var(--accent); }
+@media (prefers-color-scheme: dark) { .banner.has-accent { background: color-mix(in srgb, var(--accent) 55%, #000); } }
+#app.has-accent th.grp { background: color-mix(in srgb, var(--accent) 30%, var(--surface)); }
