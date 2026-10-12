@@ -21,6 +21,6 @@ export function mountChrome(active) {
   document.body.prepend(header);
   const footer = document.createElement('footer');
   footer.className = 'site-footer';
-  footer.innerHTML = `<div class="wrap"><p>${esc(DISCLAIMER)}</p><p>${esc(CONTACT)} <a href="admin.html">Admin</a></p></div>`;
+  footer.innerHTML = `<div class="wrap"><p>${esc(DISCLAIMER)}</p><p>${esc(CONTACT)}</p></div>`;
   document.body.append(footer);
 }
