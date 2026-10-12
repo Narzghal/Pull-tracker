@@ -2,7 +2,7 @@
 import { get } from './api.js';
 import { mountChrome } from './chrome.js';
 import { SITE_NAME } from './config.js';
-import { RARITIES, THIN, DASH, esc, num, fmtInt, fmtPct, fmtPPC, showError, SET_ORDER, setLabel } from './lib.js';
+import { RARITIES, trackedOf, THIN, DASH, esc, num, fmtInt, fmtPct, fmtPPC, showError, SET_ORDER, setLabel } from './lib.js';
 import { groupedBars, bg } from './charts.js';
 
 const app = document.getElementById('app');
@@ -52,8 +52,13 @@ function shell() {
 function groupsFor(setIds) {
   const rows = st.totals.filter((t) => setIds.includes(t.set_id));
   const sum = (list) => {
-    const o = { packs: 0 }; RARITIES.forEach((r) => { o[r.key] = 0; });
-    list.forEach((t) => { o.packs += num(t.packs); RARITIES.forEach((r) => { o[r.key] += num(t[r.key]); }); });
+    // pk[rarity] counts only packs from sets that tracked that rarity, so older sets don't dilute the rate.
+    const o = { packs: 0, pk: {} }; RARITIES.forEach((r) => { o[r.key] = 0; o.pk[r.key] = 0; });
+    list.forEach((t) => {
+      const tracked = trackedOf(st.sets.find((s) => s.id === t.set_id));
+      o.packs += num(t.packs);
+      RARITIES.forEach((r) => { if (tracked.includes(r)) { o[r.key] += num(t[r.key]); o.pk[r.key] += num(t.packs); } });
+    });
     return o;
   };
   const groups = [{ label: 'Overall', ...sum(rows) }];
@@ -74,21 +79,21 @@ function draw() {
   if (chosen.length > 1) cols.push({ name: 'All selected combined', groups: groupsFor(chosen.map((s) => s.id)), combined: true });
   const labels = cols[0].groups.map((g) => g.label);
   const value = (g) => {
-    const pulls = g[st.rarity];
-    if (!g.packs || (st.metric === 'ppc' && !pulls)) return null;
-    return st.metric === 'chance' ? pulls / g.packs : g.packs / pulls;
+    const pulls = g[st.rarity], pk = g.pk[st.rarity];
+    if (!pk || (st.metric === 'ppc' && !pulls)) return null;
+    return st.metric === 'chance' ? pulls / pk : pk / pulls;
   };
   const fmt = (v) => (st.metric === 'chance' ? fmtPct(v) : fmtPPC(v));
   const rLabel = RARITIES.find((r) => r.key === st.rarity).label;
 
-  const keep = labels.map((l, i) => cols.some((c) => c.groups[i].packs > 0));
+  const keep = labels.map((l, i) => cols.some((c) => c.groups[i].pk[st.rarity] > 0));
   const shownIdx = labels.map((_, i) => i).filter((i) => keep[i]);
-  if (!shownIdx.length) { out.innerHTML = '<p class="muted">The selected sets have no reports yet.</p>'; return; }
+  if (!shownIdx.length) { out.innerHTML = '<p class="muted">None of the selected sets have data for this rarity.</p>'; return; }
 
   const head = `<tr><th scope="col">${esc(rLabel)}</th>${cols.map((c, i) => `<th scope="col">${i < chosen.length ? `<span class="sw ${bg(i)}"></span> ` : ''}${esc(c.name)}</th>`).join('')}</tr>`;
   const body = shownIdx.map((i) => `<tr class="${i === 0 ? 'overall' : ''}"><td>${esc(labels[i])}</td>${cols.map((c) => {
-    const g = c.groups[i], v = value(g), thin = g.packs && g[st.rarity] < THIN ? ' thin' : '';
-    return `<td class="n${thin}">${v === null ? DASH : fmt(v)}<br><span class="pct-note">${g.packs ? fmtInt(g[st.rarity]) + ' pulls, ' + fmtInt(g.packs) + ' packs' : 'no reports'}</span></td>`;
+    const g = c.groups[i], v = value(g), pk = g.pk[st.rarity], thin = pk && g[st.rarity] < THIN ? ' thin' : '';
+    return `<td class="n${thin}">${v === null ? DASH : fmt(v)}<br><span class="pct-note">${pk ? fmtInt(g[st.rarity]) + ' pulls, ' + fmtInt(pk) + ' packs' : (g.packs ? 'not tracked' : 'no reports')}</span></td>`;
   }).join('')}</tr>`).join('');
 
   const series = chosen.map((s) => ({ name: s.name }));

@@ -88,6 +88,7 @@ const LIMITS = { iconic: 0.05, enchanted: 0.25, epic: 0.6, legendary: 0.9, legen
 function flagsFor(sub) {
   const out = [];
   for (const r of sub.reports || []) {
+    if (r.is_summary) continue;
     for (const x of RARITIES) {
       if (r.packs && r[x.key] / r.packs > LIMITS[x.key] && r[x.key] >= 2) out.push(`${r[x.key]} ${x.label} in ${r.packs} packs (${prodName(r.product_id)})`);
     }
@@ -106,7 +107,7 @@ async function reviewPanel(p) {
   p.querySelector('#fst').onchange = (e) => { S.filter.status = e.target.value; redo(); };
   p.querySelector('#ff').onchange = (e) => { S.filter.flagged = e.target.checked; redo(); };
   try {
-    let q = `submissions?select=id,set_id,status,created_at,reports(id,product_id,is_bulk,quantity,item_number,slot_number,packs,iconic,enchanted,epic,legendary,legendary_foil)&order=created_at.desc&limit=${PAGE}&offset=${S.page * PAGE}`;
+    let q = `submissions?select=id,set_id,status,created_at,reports(id,product_id,is_bulk,is_summary,quantity,item_number,slot_number,packs,iconic,enchanted,epic,legendary,legendary_foil)&order=created_at.desc&limit=${PAGE}&offset=${S.page * PAGE}`;
     let cq = 'submissions?select=id';
     for (const part of [S.filter.set && `set_id=eq.${S.filter.set}`, S.filter.status !== 'all' && `status=eq.${S.filter.status}`].filter(Boolean)) { q += '&' + part; cq += '&' + part; }
     const [subs, total] = await Promise.all([get(q, { auth: true }), count(cq, { auth: true })]);
@@ -135,7 +136,7 @@ function subHTML(s) {
     `<li>${g.is_bulk ? `Bulk, ${g.quantity} × ` : ''}${esc(prodName(g.product_id))}: ${RARITIES.map((x) => `${g[x.key]} ${x.label}`).join(', ')} <span class="muted">(${g.packs} packs)</span></li>`).join('');
   const hidden = s.status === 'hidden';
   return `<div class="sub${s.flags.length ? ' flagged' : ''}${hidden ? ' hidden-sub' : ''}" data-id="${s.id}">
-    <div class="sub-head"><strong>#${s.id} · ${esc(setName(s.set_id))}</strong><span class="muted small">${esc(fmtDate(s.created_at))}${hidden ? ' · hidden' : ''}</span></div>
+    <div class="sub-head"><strong>#${s.id} · ${esc(setName(s.set_id))}${(s.reports || []).some((r) => r.is_summary) ? ' · Imported totals' : ''}</strong><span class="muted small">${esc(fmtDate(s.created_at))}${hidden ? ' · hidden' : ''}</span></div>
     ${s.flags.length ? `<p class="flag">Unusual: ${esc(s.flags.join('; '))}</p>` : ''}
     <ul>${lines}</ul>
     <div class="row-actions">
@@ -170,7 +171,12 @@ function setsPanel(p) {
       <div class="checks">
         <label><input type="checkbox" data-accept="${s.id}"${s.accepting_submissions ? ' checked' : ''}> Collecting data</label>
         <span class="muted small">${s.accepting_submissions ? 'Open: people can send reports.' : 'View only.'}</span></div>
-      <div class="form-row"><label>Set number <input type="number" min="1" step="1" data-num="${s.id}" value="${s.set_number ?? ''}"></label></div>
+      <div class="form-row"><label>Set number <input type="number" min="1" step="1" data-num="${s.id}" value="${s.set_number ?? ''}"></label>
+        <label>Banner color <input type="color" data-color="${s.id}" value="${esc(s.accent_color || '#2f6fdb')}"></label>
+        <button class="btn secondary small" type="button" data-clearcolor="${s.id}">Use automatic color</button>
+        <span class="muted small">${s.accent_color ? 'Custom color.' : 'Automatic color.'}</span></div>
+      <p class="muted small">Rarities tracked in this set (untick any that didn't exist or weren't counted; they're hidden on the set's page):</p>
+      <div class="checks">${RARITIES.map((r) => `<label><input type="checkbox" data-tr="${s.id}:${r.key}"${(s.tracked_rarities || RARITIES.map((x) => x.key)).includes(r.key) ? ' checked' : ''}> ${esc(r.label)}</label>`).join('')}</div>
       <p class="muted small">Products in this set:</p>
       <div class="checks">${S.products.map((pr) => `<label><input type="checkbox" data-sp="${s.id}:${pr.id}"${has(s.id, pr.id) ? ' checked' : ''}> ${esc(pr.name)}</label>`).join('')}</div>
       <div class="form-row"><label>Baseline for expected rates <select data-base="${s.id}">${S.products.map((pr) => `<option value="${pr.id}"${s.baseline_product_id === pr.id ? ' selected' : ''}>${esc(pr.name)}</option>`).join('')}</select></label></div>
@@ -188,8 +194,17 @@ function setsPanel(p) {
     const el = e.target;
     try {
       if (el.dataset.accept) { await patch(`sets?id=eq.${el.dataset.accept}`, { accepting_submissions: el.checked }); await loadBase(); setsPanel(p); flash(el.checked ? 'Collecting data again for this set.' : 'This set is now view only.'); return; }
+      else if (el.dataset.color) { await patch(`sets?id=eq.${el.dataset.color}`, { accent_color: el.value }); await loadBase(); setsPanel(p); flash('Banner color saved.'); return; }
       else if (el.dataset.num) { await patch(`sets?id=eq.${el.dataset.num}`, { set_number: el.value ? Number(el.value) : null }); await loadBase(); setsPanel(p); flash('Saved.'); return; }
-      else if (el.dataset.sp) {
+      else if (el.dataset.tr) {
+        const [sid, key] = el.dataset.tr.split(':');
+        const set = S.sets.find((x) => x.id === Number(sid));
+        const cur = new Set(set.tracked_rarities || RARITIES.map((x) => x.key));
+        el.checked ? cur.add(key) : cur.delete(key);
+        if (!cur.size) { el.checked = true; return flash('At least one rarity must be tracked.', true); }
+        await patch(`sets?id=eq.${sid}`, { tracked_rarities: RARITIES.map((x) => x.key).filter((k) => cur.has(k)) });
+        await loadBase(); setsPanel(p); flash('Saved.'); return;
+      } else if (el.dataset.sp) {
         const [sid, pid] = el.dataset.sp.split(':');
         if (el.checked) await post('set_products', { set_id: Number(sid), product_id: Number(pid) });
         else await del(`set_products?set_id=eq.${sid}&product_id=eq.${pid}`);
@@ -197,6 +212,11 @@ function setsPanel(p) {
       } else if (el.dataset.base) { await patch(`sets?id=eq.${el.dataset.base}`, { baseline_product_id: Number(el.value) }); flash('Saved.'); }
       await loadBase();
     } catch (err) { fail(err); }
+  };
+  p.onclick = async (e) => {
+    const b = e.target.closest('[data-clearcolor]');
+    if (!b) return;
+    try { await patch(`sets?id=eq.${b.dataset.clearcolor}`, { accent_color: null }); await loadBase(); setsPanel(p); flash('This set now uses an automatic color.'); } catch (err) { fail(err); }
   };
   p.querySelector('#ns').onsubmit = async (e) => {
     e.preventDefault();

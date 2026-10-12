@@ -3,7 +3,7 @@ import { get, count } from './api.js';
 import { mountChrome } from './chrome.js';
 import { SITE_NAME } from './config.js';
 import {
-  RARITIES, RARITY_CLASS, FILL_CLASS, THIN, SET_ORDER, setLabel, currentSet, DASH, esc, num, fmtInt, fmtAmt, fmtPct, fmtPPC, fmtDate, hueFor,
+  RARITIES, trackedOf, RARITY_CLASS, FILL_CLASS, THIN, SET_ORDER, setLabel, currentSet, DASH, esc, num, fmtInt, fmtAmt, fmtPct, fmtPPC, fmtDate, hueFor,
   buildTable, binomPmf, atLeast, baselineRates, histFor, histStats, showError,
 } from './lib.js';
 import { pie, histChart } from './charts.js';
@@ -21,21 +21,24 @@ async function init() {
     const set = slug ? sets.find((s) => s.slug === slug) : currentSet(sets);
     if (!set) { app.innerHTML = '<div class="wrap"><h2>Set not found</h2><p><a href="history.html">See all sets</a></p></div>'; return; }
     const id = set.id;
-    const [sp, totals, hist, reports, last] = await Promise.all([
+    const [sp, totals, hist, reports, last, stats] = await Promise.all([
       get(`set_products?select=products(*)&set_id=eq.${id}`),
       get(`set_totals?select=*&set_id=eq.${id}`),
       get(`item_histogram?select=*&set_id=eq.${id}`),
       count(`submissions?select=id&set_id=eq.${id}&status=eq.visible`),
       get(`submissions?select=created_at&set_id=eq.${id}&status=eq.visible&order=created_at.desc&limit=1`),
+      get(`summary_stats?select=*&set_id=eq.${id}`),
     ]);
     const products = sp.map((x) => x.products).filter(Boolean).sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
     document.title = `${set.name} pull rates | ${SITE_NAME}`;
-    render({ sets, set, products, totals, hist, reports, last: last[0] ? last[0].created_at : null });
+    render({ sets, set, products, totals, hist, stats, reports, last: last[0] ? last[0].created_at : null });
   } catch (e) { showError(app.querySelector('.wrap') || app, e, init); }
 }
 
-function render({ sets, set, products, totals, hist, reports, last }) {
-  const t = buildTable(products, totals);
+function render({ sets, set, products, totals, hist, stats, reports, last }) {
+  const t = buildTable(products, totals, !set.accepting_submissions);
+  const tr = trackedOf(set);
+  const summaryOnly = totals.some((x) => x.has_summary);
   const baseline = products.find((p) => p.id === set.baseline_product_id);
   const baseRow = baseline ? t.rows.find((r) => r.key === 'p' + baseline.id) : null;
   const rates = baselineRates(baseRow);
@@ -45,20 +48,24 @@ function render({ sets, set, products, totals, hist, reports, last }) {
 
   app.innerHTML = `
     <header class="banner" id="banner"><div class="wrap">
-      <h1>Select a Set to report your pulls or view past results.</h1>
+      <h1>Pull rates reported by the community from sealed product.</h1>
       <div class="controls">
         <label>Showing set <select id="setpick" aria-label="Choose a set">${options}</select></label>
         ${set.accepting_submissions ? '<a class="btn" href="submit.html?set=' + encodeURIComponent(set.slug) + '">Report your pulls</a>' : '<span class="viewonly">View only. This set is no longer collecting reports.</span>'}
       </div>
       <dl class="facts">
-        <div><dt>Reports</dt><dd>${fmtInt(reports)}</dd></div>
+        ${summaryOnly ? '' : `<div><dt>Reports</dt><dd>${fmtInt(reports)}</dd></div>`}
         <div><dt>Packs opened</dt><dd>${fmtInt(t.overall.packs)}</dd></div>
         ${t.overall.boxes !== undefined ? `<div><dt>Boxes opened</dt><dd>${fmtAmt(t.overall.boxes)}</dd></div>` : ''}
-        ${last ? `<div><dt>Latest report</dt><dd>${esc(fmtDate(last))}</dd></div>` : ''}
+        ${last && !summaryOnly ? `<div><dt>Latest report</dt><dd>${esc(fmtDate(last))}</dd></div>` : ''}
       </dl>
     </div></header>
     <div class="wrap" id="body"></div>`;
-  document.getElementById('banner').style.setProperty('--hue', hueFor(set.slug));
+  const banner = document.getElementById('banner');
+  banner.style.setProperty('--hue', hueFor(set.slug));
+  // A set can have its own color (picked in the admin page). Otherwise the banner color comes from the set's name.
+  const accent = /^#[0-9a-f]{6}$/i.test(set.accent_color || '') ? set.accent_color : null;
+  for (const el of [banner, app]) { el.classList.toggle('has-accent', !!accent); if (accent) el.style.setProperty('--accent', accent); }
   document.getElementById('setpick').addEventListener('change', (e) => { location.href = 'set.html?set=' + encodeURIComponent(e.target.value); });
 
   const body = document.getElementById('body');
@@ -71,6 +78,8 @@ function render({ sets, set, products, totals, hist, reports, last }) {
 
   body.innerHTML = `
     <h2>Pulls by product</h2>
+    ${summaryOnly ? '<p class="notice">This set\'s totals were carried over from earlier tracking. Individual reports aren\'t available.</p>' : ''}
+    ${tr.length < RARITIES.length ? `<p class="muted">Not tracked for this set: ${RARITIES.filter((r) => !tr.includes(r)).map((r) => r.label).join(', ')}.</p>` : ''}
     <p class="muted">Every report counts, including the unlucky ones. Bulk rows are totals from people who opened several of a product and didn't track each one.</p>
     <div class="seg" role="group" aria-label="Choose columns" id="viewseg">
       <button type="button" data-view="all" aria-pressed="false">All columns</button>
@@ -78,15 +87,15 @@ function render({ sets, set, products, totals, hist, reports, last }) {
       <button type="button" data-view="ppc" aria-pressed="false">Packs per card</button>
       <button type="button" data-view="chance" aria-pressed="false">Chance per pack</button>
     </div>
-    <div class="tablewrap"><table id="main" class="view-all">${mainTable(t)}</table></div>
+    <div class="tablewrap"><table id="main" class="view-all">${mainTable(t, tr)}</table></div>
     <p class="cap">Packs per card is packs opened divided by cards pulled. Chance per pack is the same information as a percentage. <em>Italic figures</em> come from fewer than ${THIN} pulls, so treat them as rough.</p>
 
     <h2>Expected pull rates</h2>
     ${expectedIntro(baseline, baseRow, rates)}
-    <div id="expected">${rates ? expectedTables(products, baseline, rates, hist) : ''}</div>
+    <div id="expected">${rates ? expectedTables(set.accepting_submissions ? products : products.filter((p) => { const r = t.rows.find((x) => x.key === 'p' + p.id); return r && !r.empty; }), baseline, rates, hist, stats, tr, t) : ''}</div>
 
-    <h2>Reported results against the expected spread</h2>
-    <div id="histbox">${rates ? '' : '<p class="muted">Needs reports for the baseline product first.</p>'}</div>
+    ${hist.length ? `<h2>Reported results against the expected spread</h2>
+    <div id="histbox">${rates ? '' : '<p class="muted">Needs reports for the baseline product first.</p>'}</div>` : ''}
 
     <h2>Where the data comes from</h2>
     <div class="two" id="pies"></div>`;
@@ -100,7 +109,7 @@ function render({ sets, set, products, totals, hist, reports, last }) {
   document.getElementById('viewseg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setView(b.dataset.view); });
   setView(window.matchMedia('(min-width: 1100px)').matches ? 'all' : 'pulls');
 
-  if (rates) histSection(document.getElementById('histbox'), products, baseline, rates, hist);
+  if (rates && hist.length) histSection(document.getElementById('histbox'), products, baseline, rates, hist, tr);
 
   const detailRows = t.rows.filter((r) => !r.empty);
   document.getElementById('pies').innerHTML = `
@@ -109,18 +118,18 @@ function render({ sets, set, products, totals, hist, reports, last }) {
 }
 
 // ---------- Main table ----------
-function mainTable(t) {
+function mainTable(t, tr) {
   const head = `
     <thead>
       <tr><th rowspan="2" scope="col">Product</th><th rowspan="2" scope="col">Amount</th><th rowspan="2" scope="col">Packs</th>
-        <th class="grp g-pulls" colspan="5" scope="colgroup">Pulls</th>
-        <th class="grp g-ppc" colspan="5" scope="colgroup">Packs per card</th>
-        <th class="grp g-chance" colspan="5" scope="colgroup">Chance per pack</th></tr>
-      <tr>${['g-pulls', 'g-ppc', 'g-chance'].map((g) => RARITIES.map((r, i) =>
+        <th class="grp g-pulls" colspan="${tr.length}" scope="colgroup">Pulls</th>
+        <th class="grp g-ppc" colspan="${tr.length}" scope="colgroup">Packs per card</th>
+        <th class="grp g-chance" colspan="${tr.length}" scope="colgroup">Chance per pack</th></tr>
+      <tr>${['g-pulls', 'g-ppc', 'g-chance'].map((g) => tr.map((r, i) =>
         `<th scope="col" class="${RARITY_CLASS[r.key]} ${g}${i === 0 ? ' sep' : ''}">${r.label}</th>`).join('')).join('')}</tr>
     </thead>`;
   const line = (r, extra = '') => {
-    const cells = (g, fn) => RARITIES.map((x, i) => {
+    const cells = (g, fn) => tr.map((x, i) => {
       const pulls = r.counts[x.key], thin = !r.empty && pulls < THIN ? ' thin' : '';
       return `<td class="n ${RARITY_CLASS[x.key]} ${g}${i === 0 ? ' sep' : ''}${g === 'g-pulls' ? '' : thin}">${fn(pulls)}</td>`;
     }).join('');
@@ -143,38 +152,52 @@ function expectedIntro(baseline, baseRow, rates) {
   return `<p>Every expected figure starts from one rate per rarity: the chance per pack seen in the ${fmtInt(baseRow.packs)} packs of individually tracked <strong>${esc(baseline.name)}</strong> reports. We use ${esc(baseline.name)} reports because they include every box, lucky or not. The figures below say how likely a single product is to give a certain result if packs behave like that baseline.</p>`;
 }
 
-function expectedTables(products, baseline, rates, hist) {
+function expectedTables(products, baseline, rates, hist, stats, tr, t) {
+  const has = (k) => tr.some((r) => r.key === k);
   const pm = (p, rarity) => binomPmf(p.packs_per_item, rates[rarity]);
   const simple = (key, label) => `
     <div><h3>${label}</h3><div class="tablewrap"><table>
       <thead><tr><th scope="col">Product</th><th scope="col">Chance of at least 1</th></tr></thead>
       <tbody>${products.map((p) => `<tr class="${p.id === baseline.id ? 'baseline' : ''}"><td>${esc(p.name)}</td><td class="n">${fmtPct(atLeast(pm(p, key), 1))}</td></tr>`).join('')}</tbody>
     </table></div></div>`;
-  const epicRows = products.map((p) => {
-    const st = histStats(histFor(hist, p.id, 'epic'));
-    if (!st) return `<tr><td>${esc(p.name)}</td><td class="n">${DASH}</td><td class="n">${DASH}</td><td class="n">${DASH}</td><td class="n">${DASH}</td></tr>`;
-    const pmf = pm(p, 'epic');
-    const chance = st.mode === 0 ? pmf[0] : atLeast(pmf, st.mode);
-    const how = st.mode === 0 ? 'none' : `${st.mode} or more`;
-    return `<tr class="${p.id === baseline.id ? 'baseline' : ''}"><td>${esc(p.name)}</td><td class="n">${st.mode}</td><td class="n">${fmtPct(chance)} <span class="pct-note">${how}</span></td><td class="n">${st.max}</td><td class="n">${st.min}</td></tr>`;
-  }).join('');
-  return `<div class="two">${simple('iconic', 'Iconic')}${simple('enchanted', 'Enchanted')}</div>
-    <h3>Epic</h3>
+  // Most common / most / fewest: from individual reports when there are some, otherwise from imported figures.
+  const spread = (p, rarity) => {
+    const st = histStats(histFor(hist, p.id, rarity));
+    if (st) return { mode: st.mode, max: st.max, min: st.min, cnt: st.modeItems };
+    const x = stats.find((r) => r.product_id === p.id && r.rarity === rarity);
+    return x ? { mode: num(x.mode_pulls), max: num(x.max_pulls), min: num(x.min_pulls), cnt: x.mode_items === null ? null : num(x.mode_items) } : null;
+  };
+  const spreadTable = (key, label) => {
+    const rows = products.map((p) => {
+      const sp = spread(p, key), row = t.rows.find((r) => r.key === 'p' + p.id);
+      if (!sp) return '';
+      const pmf = pm(p, key);
+      const chance = sp.mode === 0 ? pmf[0] : atLeast(pmf, sp.mode);
+      const how = sp.mode === 0 ? 'none' : `${sp.mode} or more`;
+      const avg = row && row.amount ? row.counts[key] / row.amount : null;
+      return `<tr class="${p.id === baseline.id ? 'baseline' : ''}"><td>${esc(p.name)}</td><td class="n">${avg === null ? DASH : avg.toFixed(2)}</td><td class="n">${sp.mode}</td><td class="n">${fmtPct(chance)} <span class="pct-note">${how}</span></td><td class="n">${sp.max}</td><td class="n">${sp.min}</td><td class="n">${sp.cnt === null || sp.cnt === undefined ? DASH : fmtInt(sp.cnt)}</td></tr>`;
+    }).join('');
+    if (!rows) return '';
+    return `<h3>${label}</h3>
     <div class="tablewrap"><table>
-      <thead><tr><th scope="col">Product</th><th scope="col">Most common result</th><th scope="col">Chance of that result</th><th scope="col">Most seen</th><th scope="col">Fewest seen</th></tr></thead>
-      <tbody>${epicRows}</tbody></table></div>
-    <p class="cap">"Most common result" is the number of Epics reported most often in one product. "Chance of that result" is how likely the baseline rate says it is: either none at all, or that many or more.</p>`;
+      <thead><tr><th scope="col">Product</th><th scope="col">Average</th><th scope="col">Most common result</th><th scope="col">Chance of that result</th><th scope="col">Most seen</th><th scope="col">Fewest seen</th><th scope="col">Times most common</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`;
+  };
+  const simples = ['iconic', 'enchanted'].filter(has).map((k) => simple(k, RARITIES.find((r) => r.key === k).label)).join('');
+  const spreads = ['epic', 'legendary', 'legendary_foil'].filter(has).map((k) => spreadTable(k, RARITIES.find((r) => r.key === k).label)).join('');
+  return `${simples ? `<div class="two">${simples}</div>` : ''}${spreads}
+    <p class="cap">"Most common result" is the number reported most often in one product. "Chance of that result" is how likely the baseline rate says it is: either none at all, or that many or more.</p>`;
 }
 
 // ---------- Expected vs reported chart ----------
-function histSection(box, products, baseline, rates, hist) {
-  const withData = products.filter((p) => histFor(hist, p.id, 'epic').length || RARITIES.some((r) => histFor(hist, p.id, r.key).length));
+function histSection(box, products, baseline, rates, hist, tr) {
+  const withData = products.filter((p) => histFor(hist, p.id, 'epic').length || tr.some((r) => histFor(hist, p.id, r.key).length));
   if (!withData.length) { box.innerHTML = '<p class="muted">No individually tracked products yet.</p>'; return; }
   box.innerHTML = `
     <p class="muted">Bars show how many products gave each result. Dots show how many the baseline rate predicts. When bars and dots line up, the baseline describes the data well.</p>
     <div class="chart-controls">
       <label>Product<select id="hp">${withData.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></label>
-      <label>Rarity<select id="hr">${RARITIES.map((r) => `<option value="${r.key}"${r.key === 'epic' ? ' selected' : ''}>${r.label}</option>`).join('')}</select></label>
+      <label>Rarity<select id="hr">${tr.map((r) => `<option value="${r.key}"${r.key === (tr.some((x) => x.key === 'epic') ? 'epic' : tr[0].key) ? ' selected' : ''}>${r.label}</option>`).join('')}</select></label>
     </div><div id="hchart"></div>`;
   const draw = () => {
     const p = products.find((x) => x.id === Number(box.querySelector('#hp').value));

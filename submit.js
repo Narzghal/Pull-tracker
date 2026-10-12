@@ -2,7 +2,7 @@
 import { get, rpc } from './api.js';
 import { mountChrome } from './chrome.js';
 import { SITE_NAME } from './config.js';
-import { RARITIES, RARITY_CLASS, esc, SET_ORDER, setLabel } from './lib.js';
+import { RARITIES as ALL_RARITIES, trackedOf, RARITY_CLASS, esc, SET_ORDER, setLabel } from './lib.js';
 
 const app = document.getElementById('app');
 mountChrome('submit');
@@ -32,12 +32,14 @@ async function init() {
 async function chooseSet(set) {
   const sp = await get(`set_products?select=products(*)&set_id=eq.${set.id}`);
   state.set = set;
+  RARITIES = trackedOf(set);
   state.products = sp.map((x) => x.products).filter(Boolean).sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
   state.entries = [];
   state.errors = {};
   render();
 }
 
+let RARITIES = ALL_RARITIES; // narrowed to the chosen set's tracked rarities in chooseSet
 const zeroCounts = () => Object.fromEntries(RARITIES.map((r) => [r.key, '0']));
 const prod = (id) => state.products.find((p) => p.id === id);
 
@@ -196,7 +198,7 @@ function validate() {
         if (!isCount(row[r.key])) { errors[entry.id] = `${name}${where}: ${r.label} needs a whole number, 0 or more.`; return; }
         if (Number(row[r.key]) > packsPerRow) { errors[entry.id] = `${name}${where}: ${row[r.key]} ${r.label} is more than the ${packsPerRow} packs it contains. Check the number.`; return; }
       }
-      if (Number(row.legendary_foil) > Number(row.legendary)) { errors[entry.id] = `${name}${where}: Legendary Foil (${row.legendary_foil}) can't be more than Legendary (${row.legendary}). Foils are part of your Legendary count.`; return; }
+      if (RARITIES.some((r) => r.key === 'legendary_foil') && Number(row.legendary_foil) > Number(row.legendary)) { errors[entry.id] = `${name}${where}: Legendary Foil (${row.legendary_foil}) can't be more than Legendary (${row.legendary}). Foils are part of your Legendary count.`; return; }
     }
   });
   Object.values(errors).forEach((m) => problems.push(m));
