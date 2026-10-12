@@ -2,7 +2,7 @@
 import { get, count, post, patch, del, login, logout, getToken, ApiError } from './api.js';
 import { mountChrome } from './chrome.js';
 import { SITE_NAME } from './config.js';
-import { RARITIES, esc, num, fmtDate } from './lib.js';
+import { RARITIES, esc, num, fmtDate, SET_ORDER, setLabel } from './lib.js';
 
 const app = document.getElementById('app');
 mountChrome('');
@@ -41,7 +41,7 @@ function loginView(message = '') {
 
 async function loadBase() {
   const [sets, products, sp] = await Promise.all([
-    get('sets?select=*&order=created_at.desc', { auth: true }),
+    get(`sets?select=*&${SET_ORDER}`, { auth: true }),
     get('products?select=*&order=sort_order', { auth: true }),
     get('set_products?select=*', { auth: true }),
   ]);
@@ -69,6 +69,7 @@ function flash(text, bad = false) {
 // Any failed request ends up here. An expired login sends you back to sign in.
 function fail(e) {
   if (e instanceof ApiError && (e.status === 401 || e.code === 'PGRST301')) { logout(); loginView('Your session expired. Please sign in again.'); return; }
+  if (e && e.code === '23505') { flash('That name, web address, or set number is already used by another set.', true); return; }
   flash(e.message || 'Something went wrong.', true);
 }
 
@@ -80,7 +81,7 @@ function panel() {
 
 // ---------- Review ----------
 const prodName = (id) => (S.products.find((p) => p.id === id) || { name: 'Unknown' }).name;
-const setName = (id) => (S.sets.find((s) => s.id === id) || { name: '?' }).name;
+const setName = (id) => { const s = S.sets.find((x) => x.id === id); return s ? setLabel(s) : '?'; };
 
 // Flags results that are very unlikely, to help spot troll reports. A flag is a prompt to look, not a verdict.
 const LIMITS = { iconic: 0.05, enchanted: 0.25, epic: 0.6, legendary: 0.9, legendary_foil: 0.5 };
@@ -96,7 +97,7 @@ function flagsFor(sub) {
 
 async function reviewPanel(p) {
   p.innerHTML = `<div class="form-row">
-    <label>Set <select id="fs"><option value="">All sets</option>${S.sets.map((s) => `<option value="${s.id}"${String(S.filter.set) === String(s.id) ? ' selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>
+    <label>Set <select id="fs"><option value="">All sets</option>${S.sets.map((s) => `<option value="${s.id}"${String(S.filter.set) === String(s.id) ? ' selected' : ''}>${esc(setLabel(s))}</option>`).join('')}</select></label>
     <label>Status <select id="fst">${['visible', 'hidden', 'all'].map((v) => `<option value="${v}"${S.filter.status === v ? ' selected' : ''}>${v === 'all' ? 'Visible and hidden' : v[0].toUpperCase() + v.slice(1)}</option>`).join('')}</select></label>
     <label class="checks"><input type="checkbox" id="ff"${S.filter.flagged ? ' checked' : ''}> Only unusual reports</label></div>
     <div id="list"><p class="status">Loading…</p></div><div class="row-actions" id="pager"></div>`;
@@ -164,15 +165,19 @@ function setsPanel(p) {
   const has = (sid, pid) => S.setProducts.some((x) => x.set_id === sid && x.product_id === pid);
   p.innerHTML = `
     <h2>Sets</h2>
-    ${S.sets.map((s) => `<fieldset data-set="${s.id}"><legend>${esc(s.name)}</legend>
+    <p class="muted">Untick "Collecting data" to make a set <strong>view only</strong>. Its data stays on the site, but nobody can send new reports to it. Tick it again to reopen.</p>
+    ${S.sets.map((s) => `<fieldset data-set="${s.id}"><legend>${esc(setLabel(s))}</legend>
       <div class="checks">
-        <label><input type="checkbox" data-accept="${s.id}"${s.accepting_submissions ? ' checked' : ''}> Taking new reports</label></div>
+        <label><input type="checkbox" data-accept="${s.id}"${s.accepting_submissions ? ' checked' : ''}> Collecting data</label>
+        <span class="muted small">${s.accepting_submissions ? 'Open: people can send reports.' : 'View only.'}</span></div>
+      <div class="form-row"><label>Set number <input type="number" min="1" step="1" data-num="${s.id}" value="${s.set_number ?? ''}"></label></div>
       <p class="muted small">Products in this set:</p>
       <div class="checks">${S.products.map((pr) => `<label><input type="checkbox" data-sp="${s.id}:${pr.id}"${has(s.id, pr.id) ? ' checked' : ''}> ${esc(pr.name)}</label>`).join('')}</div>
       <div class="form-row"><label>Baseline for expected rates <select data-base="${s.id}">${S.products.map((pr) => `<option value="${pr.id}"${s.baseline_product_id === pr.id ? ' selected' : ''}>${esc(pr.name)}</option>`).join('')}</select></label></div>
     </fieldset>`).join('')}
     <h2>Add a new set</h2>
     <form id="ns"><div class="form-row">
+      <label>Set number <input id="ns-num" type="number" min="1" step="1" required></label>
       <label>Name <input id="ns-name" required maxlength="60"></label>
       <label>Release date <input id="ns-date" type="date"></label>
       <label>Baseline product <select id="ns-base">${S.products.map((pr) => `<option value="${pr.id}">${esc(pr.name)}</option>`).join('')}</select></label></div>
@@ -182,7 +187,8 @@ function setsPanel(p) {
   p.onchange = async (e) => {
     const el = e.target;
     try {
-      if (el.dataset.accept) { await patch(`sets?id=eq.${el.dataset.accept}`, { accepting_submissions: el.checked }); flash('Saved.'); }
+      if (el.dataset.accept) { await patch(`sets?id=eq.${el.dataset.accept}`, { accepting_submissions: el.checked }); await loadBase(); setsPanel(p); flash(el.checked ? 'Collecting data again for this set.' : 'This set is now view only.'); return; }
+      else if (el.dataset.num) { await patch(`sets?id=eq.${el.dataset.num}`, { set_number: el.value ? Number(el.value) : null }); await loadBase(); setsPanel(p); flash('Saved.'); return; }
       else if (el.dataset.sp) {
         const [sid, pid] = el.dataset.sp.split(':');
         if (el.checked) await post('set_products', { set_id: Number(sid), product_id: Number(pid) });
@@ -198,7 +204,7 @@ function setsPanel(p) {
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     if (!slug) return flash('Enter a name for the set.', true);
     try {
-      const [made] = await post('sets', { name, slug, released_on: p.querySelector('#ns-date').value || null, baseline_product_id: Number(p.querySelector('#ns-base').value) }, { ret: true });
+      const [made] = await post('sets', { name, slug, set_number: Number(p.querySelector('#ns-num').value), released_on: p.querySelector('#ns-date').value || null, baseline_product_id: Number(p.querySelector('#ns-base').value) }, { ret: true });
       for (const cb of p.querySelectorAll('#ns-prods input:checked')) await post('set_products', { set_id: made.id, product_id: Number(cb.value) });
       S.msg = `${name} was created and is taking reports.`;
       await loadBase(); shell();

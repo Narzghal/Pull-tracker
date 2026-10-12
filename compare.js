@@ -2,7 +2,7 @@
 import { get } from './api.js';
 import { mountChrome } from './chrome.js';
 import { SITE_NAME } from './config.js';
-import { RARITIES, THIN, DASH, esc, num, fmtInt, fmtPct, fmtPPC, showError } from './lib.js';
+import { RARITIES, THIN, DASH, esc, num, fmtInt, fmtPct, fmtPPC, showError, SET_ORDER, setLabel } from './lib.js';
 import { groupedBars, bg } from './charts.js';
 
 const app = document.getElementById('app');
@@ -15,11 +15,11 @@ init();
 async function init() {
   try {
     const [sets, products, totals] = await Promise.all([
-      get('sets?select=*&order=released_on.desc.nullsfirst,created_at.desc'),
+      get(`sets?select=*&${SET_ORDER}`),
       get('products?select=*&order=sort_order'),
       get('set_totals?select=*'),
     ]);
-    st.sets = sets; st.products = products; st.totals = totals;
+    st.sets = [...sets].reverse(); st.products = products; st.totals = totals; // oldest first
     const withData = new Set(totals.filter((t) => num(t.packs) > 0).map((t) => t.set_id));
     sets.filter((s) => withData.has(s.id)).slice(0, 4).forEach((s) => st.picked.add(s.id));
     shell();
@@ -32,7 +32,7 @@ function shell() {
     <h1 class="page-title">Compare sets</h1>
     <p class="muted">Pick the sets to compare. Rates are per pack, so a set with fewer reports can still be compared fairly, though small samples are less certain.</p>
     <fieldset><legend>Sets</legend><div class="checks" id="setchecks">${st.sets.map((s) =>
-      `<label><input type="checkbox" value="${s.id}"${st.picked.has(s.id) ? ' checked' : ''}> ${esc(s.name)}</label>`).join('')}</div></fieldset>
+      `<label><input type="checkbox" value="${s.id}"${st.picked.has(s.id) ? ' checked' : ''}> ${esc(setLabel(s))}</label>`).join('')}</div></fieldset>
     <div class="seg" role="group" aria-label="Rarity" id="rseg">${RARITIES.map((r) => `<button type="button" data-r="${r.key}" aria-pressed="false">${r.label}</button>`).join('')}</div>
     <div class="seg" role="group" aria-label="Measure" id="mseg">
       <button type="button" data-m="chance" aria-pressed="false">Chance per pack</button>

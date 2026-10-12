@@ -10,6 +10,11 @@ export const RARITIES = [
 ];
 export const RARITY_CLASS = { iconic: 'r-iconic', enchanted: 'r-enchanted', epic: 'r-epic', legendary: 'r-legendary', legendary_foil: 'r-foil' };
 export const FILL_CLASS = { iconic: 'f-iconic', enchanted: 'f-enchanted', epic: 'f-epic', legendary: 'f-legendary', legendary_foil: 'f-foil' };
+// Sets are listed newest first by set number.
+export const SET_ORDER = 'order=set_number.desc.nullslast,created_at.desc';
+export const setLabel = (s) => (s.set_number != null ? `${s.set_number} - ${s.name}` : s.name);
+// The set shown by default: the newest set that is still collecting reports, otherwise the newest set.
+export const currentSet = (sets) => sets.find((s) => s.accepting_submissions) || sets[0];
 export const THIN = 20; // fewer pulls than this = flagged as a rough figure
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

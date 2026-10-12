@@ -3,7 +3,7 @@ import { get, count } from './api.js';
 import { mountChrome } from './chrome.js';
 import { SITE_NAME } from './config.js';
 import {
-  RARITIES, RARITY_CLASS, FILL_CLASS, THIN, DASH, esc, num, fmtInt, fmtAmt, fmtPct, fmtPPC, fmtDate, hueFor,
+  RARITIES, RARITY_CLASS, FILL_CLASS, THIN, SET_ORDER, setLabel, currentSet, DASH, esc, num, fmtInt, fmtAmt, fmtPct, fmtPPC, fmtDate, hueFor,
   buildTable, binomPmf, atLeast, baselineRates, histFor, histStats, showError,
 } from './lib.js';
 import { pie, histChart } from './charts.js';
@@ -15,10 +15,10 @@ init();
 async function init() {
   app.innerHTML = '<div class="wrap"><p class="status">Loading…</p></div>';
   try {
-    const sets = await get('sets?select=*&order=released_on.desc.nullsfirst,created_at.desc');
+    const sets = await get(`sets?select=*&${SET_ORDER}`);
     if (!sets.length) { app.innerHTML = '<div class="wrap"><h1>No sets yet</h1><p>Sets are added from the admin page.</p></div>'; return; }
     const slug = new URLSearchParams(location.search).get('set');
-    const set = slug ? sets.find((s) => s.slug === slug) : sets[0];
+    const set = slug ? sets.find((s) => s.slug === slug) : currentSet(sets);
     if (!set) { app.innerHTML = '<div class="wrap"><h2>Set not found</h2><p><a href="history.html">See all sets</a></p></div>'; return; }
     const id = set.id;
     const [sp, totals, hist, reports, last] = await Promise.all([
@@ -40,16 +40,15 @@ function render({ sets, set, products, totals, hist, reports, last }) {
   const baseRow = baseline ? t.rows.find((r) => r.key === 'p' + baseline.id) : null;
   const rates = baselineRates(baseRow);
 
-  const options = sets.map((s) => `<option value="${esc(s.slug)}"${s.id === set.id ? ' selected' : ''}>${esc(s.name)}</option>`).join('');
+  const options = sets.map((s) => `<option value="${esc(s.slug)}"${s.id === set.id ? ' selected' : ''}>${esc(setLabel(s))}</option>`).join('');
   const hasData = t.overall.packs > 0;
 
   app.innerHTML = `
     <header class="banner" id="banner"><div class="wrap">
-      <h1>${esc(set.name)}</h1>
-      <p>Pull rates reported by the community from sealed product.</p>
+      <h1>Pull rates reported by the community from sealed product.</h1>
       <div class="controls">
         <label>Showing set <select id="setpick" aria-label="Choose a set">${options}</select></label>
-        ${set.accepting_submissions ? '<a class="btn" href="submit.html?set=' + encodeURIComponent(set.slug) + '">Report your pulls</a>' : '<span>This set is closed to new reports.</span>'}
+        ${set.accepting_submissions ? '<a class="btn" href="submit.html?set=' + encodeURIComponent(set.slug) + '">Report your pulls</a>' : '<span class="viewonly">View only. This set is no longer collecting reports.</span>'}
       </div>
       <dl class="facts">
         <div><dt>Reports</dt><dd>${fmtInt(reports)}</dd></div>
@@ -64,7 +63,9 @@ function render({ sets, set, products, totals, hist, reports, last }) {
 
   const body = document.getElementById('body');
   if (!hasData) {
-    body.innerHTML = `<h2>No pulls reported yet</h2><p>Nobody has reported ${esc(set.name)} pulls yet. <a href="submit.html?set=${encodeURIComponent(set.slug)}">Be the first to report</a>.</p>`;
+    body.innerHTML = set.accepting_submissions
+      ? `<h2>No pulls reported yet</h2><p>Nobody has reported pulls for this set yet. <a href="submit.html?set=${encodeURIComponent(set.slug)}">Be the first to report</a>.</p>`
+      : `<h2>No pulls were collected</h2><p>This set is view only, and no pulls were collected for it.</p>`;
     return;
   }
 

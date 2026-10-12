@@ -2,7 +2,7 @@
 import { get, rpc } from './api.js';
 import { mountChrome } from './chrome.js';
 import { SITE_NAME } from './config.js';
-import { RARITIES, RARITY_CLASS, esc } from './lib.js';
+import { RARITIES, RARITY_CLASS, esc, SET_ORDER, setLabel } from './lib.js';
 
 const app = document.getElementById('app');
 mountChrome('submit');
@@ -15,7 +15,7 @@ init();
 
 async function init() {
   try {
-    const sets = await get('sets?select=*&order=released_on.desc.nullsfirst,created_at.desc');
+    const sets = await get(`sets?select=*&${SET_ORDER}`);
     state.sets = sets.filter((s) => s.accepting_submissions);
     if (!state.sets.length) {
       app.innerHTML = '<div class="wrap form-wrap"><h1>Reporting is closed</h1><p>No set is taking reports right now. Check back when the next set is out.</p></div>';
@@ -62,7 +62,7 @@ function render() {
       <fieldset>
         <legend>Which set?</legend>
         <label for="setsel" class="visually-hidden">Set</label>
-        <select id="setsel">${state.sets.map((s) => `<option value="${esc(s.slug)}"${s.id === set.id ? ' selected' : ''}>${esc(s.name)}</option>`).join('')}</select>
+        <select id="setsel">${state.sets.map((s) => `<option value="${esc(s.slug)}"${s.id === set.id ? ' selected' : ''}>${esc(setLabel(s))}</option>`).join('')}</select>
       </fieldset>
 
       <fieldset id="consent">
