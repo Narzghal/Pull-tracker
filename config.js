@@ -6,7 +6,7 @@ export const SUPABASE_URL = 'https://eihdtiafwlkgbpetwhka.supabase.co';
 export const SUPABASE_KEY = 'sb_publishable_OKUsHDj3TFbjB4Dj60j6LQ_hFBwxnXc';
 
 // Shown in the header and browser tab. Change it to whatever you want to call the site.
-export const SITE_NAME = 'Lorcana Pull Tracker';
+export const SITE_NAME = 'Lorcana Pull Rates Tracker';
 
 // Footer text.
 export const DISCLAIMER =
