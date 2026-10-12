@@ -26,7 +26,7 @@ async function init() {
         <thead><tr><th scope="col">Set</th>${anyDate ? '<th scope="col">Released</th>' : ''}<th scope="col">Reports</th><th scope="col">Packs opened</th><th scope="col">Status</th></tr></thead>
         <tbody>${sets.map((s, i) => `<tr><td><a href="set.html?set=${encodeURIComponent(s.slug)}">${esc(setLabel(s))}</a></td>
           ${anyDate ? `<td class="n">${s.released_on ? esc(fmtDate(s.released_on + 'T12:00:00')) : '—'}</td>` : ''}
-          <td class="n">${summ[s.id] ? 'Totals only' : fmtInt(reports[i])}</td><td class="n">${fmtInt(packs[s.id] || 0)}</td>
+          <td class="n">${summ[s.id] ? (s.reported_count == null ? 'Totals only' : fmtInt(s.reported_count)) : fmtInt(reports[i])}</td><td class="n">${fmtInt(packs[s.id] || 0)}</td>
           <td class="n">${s.accepting_submissions ? 'Collecting data' : 'View only'}</td></tr>`).join('')}</tbody></table></div>` : '<p>No sets yet.</p>'}
     </div>`;
   } catch (e) { showError(app, e, init); }

@@ -172,6 +172,7 @@ function setsPanel(p) {
         <label><input type="checkbox" data-accept="${s.id}"${s.accepting_submissions ? ' checked' : ''}> Collecting data</label>
         <span class="muted small">${s.accepting_submissions ? 'Open: people can send reports.' : 'View only.'}</span></div>
       <div class="form-row"><label>Set number <input type="number" min="1" step="1" data-num="${s.id}" value="${s.set_number ?? ''}"></label>
+        <label>Responses from earlier tracking <input type="number" min="0" step="1" data-rc="${s.id}" value="${s.reported_count ?? ''}"></label>
         <label>Banner color <input type="color" data-color="${s.id}" value="${esc(s.accent_color || '#2f6fdb')}"></label>
         <button class="btn secondary small" type="button" data-clearcolor="${s.id}">Use automatic color</button>
         <span class="muted small">${s.accent_color ? 'Custom color.' : 'Automatic color.'}</span></div>
@@ -195,6 +196,7 @@ function setsPanel(p) {
     try {
       if (el.dataset.accept) { await patch(`sets?id=eq.${el.dataset.accept}`, { accepting_submissions: el.checked }); await loadBase(); setsPanel(p); flash(el.checked ? 'Collecting data again for this set.' : 'This set is now view only.'); return; }
       else if (el.dataset.color) { await patch(`sets?id=eq.${el.dataset.color}`, { accent_color: el.value }); await loadBase(); setsPanel(p); flash('Banner color saved.'); return; }
+      else if (el.dataset.rc) { await patch(`sets?id=eq.${el.dataset.rc}`, { reported_count: el.value === '' ? null : Number(el.value) }); await loadBase(); setsPanel(p); flash('Saved.'); return; }
       else if (el.dataset.num) { await patch(`sets?id=eq.${el.dataset.num}`, { set_number: el.value ? Number(el.value) : null }); await loadBase(); setsPanel(p); flash('Saved.'); return; }
       else if (el.dataset.tr) {
         const [sid, key] = el.dataset.tr.split(':');

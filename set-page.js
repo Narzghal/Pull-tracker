@@ -48,13 +48,13 @@ function render({ sets, set, products, totals, hist, stats, reports, last }) {
 
   app.innerHTML = `
     <header class="banner" id="banner"><div class="wrap">
-      <h1>Pull rates reported by the community from sealed product.</h1>
+      <h1>Select a Set to report your pulls or view past results.</h1>
       <div class="controls">
         <label>Showing set <select id="setpick" aria-label="Choose a set">${options}</select></label>
         ${set.accepting_submissions ? '<a class="btn" href="submit.html?set=' + encodeURIComponent(set.slug) + '">Report your pulls</a>' : '<span class="viewonly">View only. This set is no longer collecting reports.</span>'}
       </div>
       <dl class="facts">
-        ${summaryOnly ? '' : `<div><dt>Reports</dt><dd>${fmtInt(reports)}</dd></div>`}
+        ${summaryOnly && set.reported_count == null ? '' : `<div><dt>Reports</dt><dd>${fmtInt(summaryOnly ? set.reported_count : reports)}</dd></div>`}
         <div><dt>Packs opened</dt><dd>${fmtInt(t.overall.packs)}</dd></div>
         ${t.overall.boxes !== undefined ? `<div><dt>Boxes opened</dt><dd>${fmtAmt(t.overall.boxes)}</dd></div>` : ''}
         ${last && !summaryOnly ? `<div><dt>Latest report</dt><dd>${esc(fmtDate(last))}</dd></div>` : ''}
