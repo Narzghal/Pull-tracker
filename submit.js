@@ -115,6 +115,7 @@ function renderAfterConsent() {
   }
   if (!state.consent) { box.innerHTML = ''; return; }
   box.innerHTML = `
+    ${cardsHTML()}
     <h2>What did you open?</h2>
     <p>Add each product you opened. If you tracked every one separately, add them one by one. If you only kept running totals for several, choose "bulk totals" inside the entry.</p>
     <div class="chipbar" role="group" aria-label="Add a product">${state.products.map((p) => `<button class="btn secondary" type="button" data-add="${p.id}">Add ${esc(p.name)}</button>`).join('')}</div>
@@ -160,20 +161,23 @@ function entryHTML(entry) {
       <input type="number" inputmode="numeric" min="2" step="1" data-id="${entry.id}" data-qty="1" value="${esc(entry.qty)}"></label>
       <p class="muted small">Enter the combined total for all of them.</p>` : ''}
     <div class="counts">${rowsHTML}</div>
-    ${cardRefHTML(entry)}
     <p class="field-error" id="err-${entry.id}" role="alert">${esc(err || '')}</p>
   </fieldset>`;
 }
 
-function cardRefHTML(entry) {
+// The fixed "Cards To Report" pictures shown before the entries (Iconic, Enchanted, Epic, Legendary).
+function cardsHTML() {
   const imgs = state.cardImgs || {};
-  const have = RARITIES.filter((r) => imgs[r.key]);
-  if (!have.length) return '';
-  const open = entry.ref && imgs[entry.ref] ? RARITIES.find((r) => r.key === entry.ref) : null;
-  return `<div class="cardref"><span class="muted small">Not sure which cards count?</span>
-    <div class="seg" role="group" aria-label="Show card pictures">${have.map((r) =>
-      `<button type="button" data-ref="${entry.id}:${r.key}" aria-pressed="${open && open.key === r.key ? 'true' : 'false'}">${esc(r.label)} cards</button>`).join('')}</div>
-    ${open ? `<img class="cardimg" src="${esc(imgs[open.key])}" alt="The ${esc(open.label)} cards in ${esc(state.set.name)}" loading="lazy">` : ''}</div>`;
+  const shown = ['iconic', 'enchanted', 'epic', 'legendary'].map((k) => RARITIES.find((r) => r.key === k)).filter((r) => r && imgs[r.key]);
+  if (!shown.length) return '';
+  return `<section class="cardsref" aria-labelledby="cards-h">
+    <h2 id="cards-h">Cards To Report</h2>
+    <p>These are the cards we're looking for in ${esc(state.set.name)}. As you open your products, count how many of each you pull and report them below. Legendary Foil counts the foil copies of your Legendary cards. Tap a picture to see it full size.</p>
+    <div class="cardgrid">${shown.map((r) => `<figure>
+      <figcaption class="${RARITY_CLASS[r.key]}">${esc(r.label)}</figcaption>
+      <a href="${esc(imgs[r.key])}" target="_blank" rel="noopener"><img class="cardimg" src="${esc(imgs[r.key])}" alt="The ${esc(r.label)} cards in ${esc(state.set.name)}" loading="lazy"></a>
+    </figure>`).join('')}</div>
+  </section>`;
 }
 
 function renderEntries() {
@@ -203,13 +207,6 @@ function onChange(e) {
   renderEntries();
 }
 function onClick(e) {
-  const ref = e.target.closest('[data-ref]');
-  if (ref) {
-    const [id, key] = ref.dataset.ref.split(':');
-    const entry = state.entries.find((x) => x.id === Number(id));
-    if (entry) { entry.ref = entry.ref === key ? null : key; renderEntries(); }
-    return;
-  }
   const b = e.target.closest('[data-remove]');
   if (!b) return;
   state.entries = state.entries.filter((x) => x.id !== Number(b.dataset.remove));

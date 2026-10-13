@@ -224,3 +224,12 @@ td.thin { font-style: italic; opacity: .8; }
 .cardpic strong { min-width: 8.5rem; }
 .cardpic img { height: 56px; width: auto; max-width: 120px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); }
 .cardpic input[type=file] { display: none; }
+
+/* Fixed "Cards To Report" pictures on the report form */
+.cardsref { margin: 1.5rem 0 2rem; }
+.cardgrid { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-top: 1rem; }
+@media (min-width: 760px) { .cardgrid { grid-template-columns: 1fr 1fr; } }
+.cardgrid figure { margin: 0; padding: .6rem; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.cardgrid figcaption { font-weight: 700; padding: .35rem .6rem; border-radius: 6px; margin-bottom: .6rem; display: inline-block; }
+.cardgrid a { display: block; }
+.cardgrid .cardimg { width: 100%; }
