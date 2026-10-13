@@ -227,8 +227,7 @@ td.thin { font-style: italic; opacity: .8; }
 
 /* Fixed "Cards To Report" pictures on the report form */
 .cardsref { margin: 1.5rem 0 2rem; }
-.cardgrid { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-top: 1rem; }
-@media (min-width: 760px) { .cardgrid { grid-template-columns: 1fr 1fr; } }
+.cardgrid { display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1rem; } /* one picture after another, each full width */
 .cardgrid figure { margin: 0; padding: .6rem; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .cardgrid figcaption { font-weight: 700; padding: .35rem .6rem; border-radius: 6px; margin-bottom: .6rem; display: inline-block; }
 .cardgrid a { display: block; }
