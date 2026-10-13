@@ -63,6 +63,11 @@ let RARITIES = ALL_RARITIES; // narrowed to the chosen set's tracked rarities in
 const zeroCounts = () => Object.fromEntries(RARITIES.map((r) => [r.key, '0']));
 const prod = (id) => state.products.find((p) => p.id === id);
 
+// A product's picture (set in the admin page), or nothing if it has none.
+function prodImg(p, cls) {
+  return p.image_path ? `<img class="${cls}" src="${esc(cardImageUrl({ path: p.image_path, updated_at: p.image_updated_at }))}" alt="" loading="lazy">` : '';
+}
+
 function addEntry(productId) {
   if (state.entries.length >= MAX_ENTRIES) return;
   const p = prod(productId);
@@ -118,7 +123,7 @@ function renderAfterConsent() {
     ${cardsHTML()}
     <h2>What did you open?</h2>
     <p>Add each product you opened. If you tracked every one separately, add them one by one. If you only kept running totals for several, choose "bulk totals" inside the entry.</p>
-    <div class="chipbar" role="group" aria-label="Add a product">${state.products.map((p) => `<button class="btn secondary" type="button" data-add="${p.id}">Add ${esc(p.name)}</button>`).join('')}</div>
+    <div class="chipbar" role="group" aria-label="Add a product">${state.products.map((p) => `<button class="btn secondary prodbtn" type="button" data-add="${p.id}">${prodImg(p, 'prodpic')}<span>Add ${esc(p.name)}</span></button>`).join('')}</div>
     <div id="entries" aria-live="polite"></div>
     <div id="summary-errors" class="notice error" role="alert" hidden></div>
     <p><button class="btn" id="send" type="submit">Send report</button></p>`;
@@ -150,6 +155,7 @@ function entryHTML(entry) {
   return `
   <fieldset class="entry" data-id="${entry.id}">
     <legend>${esc(label(entry))}</legend>
+    ${prodImg(p, 'entrypic')}
     <div class="entry-head">
       ${p.allows_bulk ? `<div class="mode" role="radiogroup" aria-label="How did you track this?">
         <label class="radio"><input type="radio" name="mode-${entry.id}" value="single" data-mode="${entry.id}"${entry.bulk ? '' : ' checked'}> <span>One ${esc(p.name)}, tracked on its own</span></label>

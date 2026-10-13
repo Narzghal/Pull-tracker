@@ -232,3 +232,8 @@ td.thin { font-style: italic; opacity: .8; }
 .cardgrid figcaption { font-weight: 700; padding: .35rem .6rem; border-radius: 6px; margin-bottom: .6rem; display: inline-block; }
 .cardgrid a { display: block; }
 .cardgrid .cardimg { width: 100%; }
+
+/* Product pictures on the report form */
+.chipbar .prodbtn { display: inline-flex; flex-direction: column; align-items: center; gap: .5rem; padding: .6rem .8rem; border-radius: 14px; }
+.prodpic { display: block; width: 150px; max-width: 100%; height: auto; border-radius: 8px; }
+.entrypic { display: block; width: 180px; max-width: 100%; height: auto; border-radius: 8px; margin: .25rem 0 .75rem; }

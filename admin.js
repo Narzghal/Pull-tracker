@@ -282,11 +282,19 @@ function setsPanel(p) {
 }
 
 // ---------- Products ----------
+function productPicHTML(pr) {
+  if (!('image_path' in pr)) return '<span class="muted small">Not set up</span>';
+  return `<div class="cardpic">${pr.image_path ? `<img src="${esc(cardImageUrl({ path: pr.image_path, updated_at: pr.image_updated_at }))}" alt="${esc(pr.name)}">` : '<span class="muted small">No picture</span>'}
+    <label class="btn secondary small">${pr.image_path ? 'Replace' : 'Choose picture'}<input type="file" accept="image/jpeg,image/png,image/webp" data-ppic="${pr.id}"></label>
+    ${pr.image_path ? `<button class="btn danger small" type="button" data-clearppic="${pr.id}">Remove</button>` : ''}</div>`;
+}
+
 function productsPanel(p) {
   p.innerHTML = `
     <h2>Products</h2>
-    <div class="tablewrap"><table><thead><tr><th scope="col">Name</th><th scope="col">Packs each</th><th scope="col">Boxes reported separately</th><th scope="col">Counts as boxes</th><th scope="col">Bulk allowed</th></tr></thead>
-    <tbody>${S.products.map((pr) => `<tr><td>${esc(pr.name)}</td><td class="n">${pr.packs_per_item}</td><td class="n">${pr.slots_per_item}</td><td class="n">${pr.box_equivalents}</td><td class="n">${pr.allows_bulk ? 'Yes' : 'No'}</td></tr>`).join('')}</tbody></table></div>
+    ${S.products.length && !('image_path' in S.products[0]) ? '<p class="notice error">To add product pictures, run <code>add-product-images.sql</code> in Supabase first, then reload this page.</p>' : '<p class="muted small">A picture for each product shows on the report form. Pick an image and it uploads right away.</p>'}
+    <div class="tablewrap"><table><thead><tr><th scope="col">Name</th><th scope="col">Picture</th><th scope="col">Packs each</th><th scope="col">Boxes reported separately</th><th scope="col">Counts as boxes</th><th scope="col">Bulk allowed</th></tr></thead>
+    <tbody>${S.products.map((pr) => `<tr><td>${esc(pr.name)}</td><td>${productPicHTML(pr)}</td><td class="n">${pr.packs_per_item}</td><td class="n">${pr.slots_per_item}</td><td class="n">${pr.box_equivalents}</td><td class="n">${pr.allows_bulk ? 'Yes' : 'No'}</td></tr>`).join('')}</tbody></table></div>
     <h2>Add a product</h2>
     <p class="muted">After adding it, switch it on for a set in the Sets tab.</p>
     <form id="np"><div class="form-row">
@@ -297,6 +305,31 @@ function productsPanel(p) {
       <label class="checks"><input id="np-bulk" type="checkbox" checked> Bulk allowed</label></div>
       <p class="muted small">"Separate results" is 4 for a case (one result per box) and 1 for most products. "Counts as boxes" is 4 for a case, 1 for a box, 0 for anything that shouldn't count in the All boxes rows.</p>
       <p><button class="btn" type="submit">Add product</button></p></form>`;
+  p.onchange = async (e) => {
+    const el = e.target;
+    if (!el.dataset.ppic) return;
+    const file = el.files && el.files[0];
+    if (!file) return;
+    const pr = S.products.find((x) => x.id === Number(el.dataset.ppic));
+    try {
+      flash('Uploading…');
+      const blob = await shrinkImage(file, 1000);
+      const path = `products/${pr.slug}.jpg`;
+      await uploadCardImage(path, blob);
+      await patch(`products?id=eq.${pr.id}`, { image_path: path, image_updated_at: new Date().toISOString() });
+      await loadBase(); productsPanel(p); flash('Picture saved.');
+    } catch (err) { fail(err); }
+  };
+  p.onclick = async (e) => {
+    const b = e.target.closest('[data-clearppic]');
+    if (!b) return;
+    const pr = S.products.find((x) => x.id === Number(b.dataset.clearppic));
+    try {
+      if (pr.image_path) await deleteCardImage(pr.image_path);
+      await patch(`products?id=eq.${pr.id}`, { image_path: null, image_updated_at: null });
+      await loadBase(); productsPanel(p); flash('Picture removed.');
+    } catch (err) { fail(err); }
+  };
   p.querySelector('#np').onsubmit = async (e) => {
     e.preventDefault();
     const name = p.querySelector('#np-name').value.trim();
