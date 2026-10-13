@@ -177,7 +177,8 @@ async function onAction(e) {
 // ---------- Sets ----------
 function cardPicsHTML(s) {
   if (!S.cardPicsOk) return '<p class="muted small">Card pictures: run <code>add-card-images.sql</code> in Supabase first, then reload this page.</p>';
-  const tr = RARITIES.filter((r) => (s.tracked_rarities || RARITIES.map((x) => x.key)).includes(r.key));
+  // Legendary Foil uses the Legendary picture, so it has no slot of its own.
+  const tr = RARITIES.filter((r) => r.key !== 'legendary_foil' && (s.tracked_rarities || RARITIES.map((x) => x.key)).includes(r.key));
   return `<p class="muted small">Card pictures shown on the report form (optional). Pick an image and it uploads right away.</p>
     <div class="cardpics">${tr.map((r) => {
       const row = S.cardImages.find((x) => x.set_id === s.id && x.rarity === r.key);
