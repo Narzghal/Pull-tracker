@@ -161,8 +161,8 @@ function expectedTables(products, baseline, rates, hist, stats, tr, t) {
   const pm = (p, rarity) => binomPmf(p.packs_per_item, rates[rarity]);
   const simple = (key, label) => `
     <div><h3>${label}</h3><div class="tablewrap"><table>
-      <thead><tr><th scope="col">Product</th><th scope="col">Chance of at least 1</th></tr></thead>
-      <tbody>${products.map((p) => `<tr class="${p.id === baseline.id ? 'baseline' : ''}"><td>${esc(p.name)}</td><td class="n">${fmtPct(atLeast(pm(p, key), 1))}</td></tr>`).join('')}</tbody>
+      <thead><tr><th scope="col">Product</th><th scope="col" colspan="2">Chance of at least 1</th></tr></thead>
+      <tbody>${products.map((p) => `<tr class="${p.id === baseline.id ? 'baseline' : ''}"><td>${esc(p.name)}</td><td class="n" colspan="2">${fmtPct(atLeast(pm(p, key), 1))}</td></tr>`).join('')}</tbody>
     </table></div></div>`;
   // Most common / most / fewest: from individual reports when there are some, otherwise from imported figures.
   const spread = (p, rarity) => {
@@ -188,13 +188,13 @@ function expectedTables(products, baseline, rates, hist, stats, tr, t) {
       return `<tr class="${p.id === baseline.id ? 'baseline' : ''}"><td>${esc(p.name)}</td>${cell}</tr>`;
     }).join('');
     return `<div><h3>${label}</h3><div class="tablewrap"><table>
-      <thead><tr><th scope="col">Product</th><th scope="col">${useAvg ? 'Average' : 'Most common result'}</th><th scope="col">Expected pull rate</th></tr></thead>
+      <thead><tr><th scope="col">Product</th><th scope="col">${useAvg ? 'Average' : 'Most common'}</th><th scope="col">Expected rate</th></tr></thead>
       <tbody>${rows}</tbody></table></div></div>`;
   };
   const tables = ['iconic', 'enchanted', 'epic', 'legendary', 'legendary_foil'].filter(has)
     .map((k) => (k === 'iconic' || k === 'enchanted' ? simple(k, RARITIES.find((r) => r.key === k).label) : spreadTable(k, RARITIES.find((r) => r.key === k).label))).join('');
   const hasSpread = ['epic', 'legendary', 'legendary_foil'].some(has);
-  return `${tables ? `<div class="two">${tables}</div>` : ''}
+  return `${tables ? `<div class="expgrid">${tables}</div>` : ''}
     ${hasSpread ? '<p class="cap">Expected pull rate is how likely the baseline rate says a product is to give at least that many (or none at all, when the figure is 0). "Most common result" is the number reported most often in one product.</p>' : ''}`;
 }
 

@@ -241,3 +241,15 @@ td.thin { font-style: italic; opacity: .8; }
 /* "Currently collecting" blurb and set logo on the report form */
 .collecting { font-size: 1.15rem; margin: 1.25rem 0 .5rem; }
 .setlogo { display: block; max-width: min(100%, 420px); max-height: 220px; width: auto; height: auto; margin: .5rem 0 1.5rem; }
+
+/* Expected pull rate tables: same size, fully visible, no sideways scrolling */
+.expgrid { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); align-items: stretch; }
+.expgrid > div { min-width: 0; }
+.expgrid .tablewrap { overflow: visible; }
+.expgrid table { table-layout: fixed; }
+.expgrid th, .expgrid td { padding: .5rem .5rem; white-space: normal; }
+.expgrid th:first-child, .expgrid td:first-child { position: static; width: 38%; }
+.expgrid th:nth-child(2), .expgrid td:nth-child(2) { width: 24%; }
+.expgrid .pct-note { display: block; font-size: .75em; line-height: 1.2; }
+.expgrid th { height: 3.4rem; vertical-align: middle; line-height: 1.25; }
+.expgrid td { height: 3.4rem; padding-top: .3rem; padding-bottom: .3rem; vertical-align: middle; line-height: 1.25; }
