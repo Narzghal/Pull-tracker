@@ -13,7 +13,7 @@ export function mountChrome(active) {
       <a class="brand" href="index.html">${esc(SITE_NAME)}</a>
       <nav aria-label="Main">
         ${link('set', 'index.html', 'Single Set Results')}
-        ${link('history', 'history.html', 'All Sets Summary')}
+        ${link('history', 'history.html', 'All Sets Overview')}
         ${link('compare', 'compare.html', 'Compare Results')}
         ${link('submit', 'submit.html', 'Report your pulls', 'cta')}
       </nav>
