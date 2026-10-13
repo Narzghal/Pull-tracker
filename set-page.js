@@ -157,6 +157,10 @@ function expectedIntro(baseline, baseRow, rates) {
 }
 
 function expectedTables(products, baseline, rates, hist, stats, tr, t) {
+  // Same order as the spreadsheet: Troves, Prerelease Box, Individual Sealed Box, Sealed Case (anything else after).
+  const ORDER = ['trove', 'prerelease-box', 'sealed-box', 'sealed-case'];
+  const rank = (p) => { const i = ORDER.indexOf(p.slug); return i < 0 ? ORDER.length : i; };
+  products = [...products].sort((a, b) => rank(a) - rank(b));
   const has = (k) => tr.some((r) => r.key === k);
   const pm = (p, rarity) => binomPmf(p.packs_per_item, rates[rarity]);
   const simple = (key, label) => `
@@ -177,7 +181,7 @@ function expectedTables(products, baseline, rates, hist, stats, tr, t) {
     const rows = products.map((p) => {
       const sp = spread(p, key), row = t.rows.find((r) => r.key === 'p' + p.id);
       const avg = row && row.amount ? row.counts[key] / row.amount : null;
-      const shown = useAvg ? (avg === null ? null : Math.round(avg)) : (sp ? sp.mode : null);
+      const shown = useAvg ? (avg === null ? null : Math.floor(avg)) : (sp ? sp.mode : null);
       let cell = `<td class="n">${DASH}</td><td class="n">${DASH}</td>`;
       if (shown !== null) {
         const pmf = pm(p, key);
