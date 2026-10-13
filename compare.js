@@ -1,8 +1,8 @@
 // Put sets side by side. Compares per-pack rates, so sets with different numbers of reports stay comparable.
-import { get } from './api.js';
+import { get, count } from './api.js';
 import { mountChrome } from './chrome.js';
 import { SITE_NAME } from './config.js';
-import { RARITIES, trackedOf, THIN, DASH, esc, num, fmtInt, fmtPct, fmtPPC, showError, SET_ORDER, setLabel } from './lib.js';
+import { resultsPublic, RARITIES, trackedOf, THIN, DASH, esc, num, fmtInt, fmtPct, fmtPPC, showError, SET_ORDER, setLabel } from './lib.js';
 import { groupedBars, bg } from './charts.js';
 
 const app = document.getElementById('app');
@@ -19,9 +19,15 @@ async function init() {
       get('products?select=*&order=sort_order'),
       get('set_totals?select=*'),
     ]);
-    st.sets = [...sets].reverse(); st.products = products; st.totals = totals; // oldest first
-    const withData = new Set(totals.filter((t) => num(t.packs) > 0).map((t) => t.set_id));
-    sets.filter((s) => withData.has(s.id)).slice(0, 4).forEach((s) => st.picked.add(s.id));
+    // Sets that haven't collected enough data yet stay out of the comparison.
+    const reports = await Promise.all(sets.map((s) => count(`submissions?select=id&set_id=eq.${s.id}&status=eq.visible`)));
+    const packs = {}, imported = {};
+    totals.forEach((t) => { packs[t.set_id] = (packs[t.set_id] || 0) + num(t.packs); if (t.has_summary) imported[t.set_id] = true; });
+    const shown = sets.filter((s, i) => !(packs[s.id] > 0) || resultsPublic({ imported: imported[s.id], reports: reports[i], packs: packs[s.id] }));
+    const okIds = new Set(shown.map((s) => s.id));
+    st.sets = [...shown].reverse(); st.products = products; st.totals = totals.filter((t) => okIds.has(t.set_id)); // oldest first
+    const withData = new Set(st.totals.filter((t) => num(t.packs) > 0).map((t) => t.set_id));
+    shown.filter((s) => withData.has(s.id)).slice(0, 4).forEach((s) => st.picked.add(s.id));
     shell();
     draw();
   } catch (e) { showError(app, e, init); }
@@ -31,7 +37,7 @@ function shell() {
   app.innerHTML = `<div class="wrap">
     <h1 class="page-title">Compare sets</h1>
     <p class="muted">Pick the sets to compare. Rates are per pack, so a set with fewer reports can still be compared fairly, though small samples are less certain.</p>
-    <div class="notice"><p><strong>Keep in mind:</strong> starting with Wilds Unknown (set 12), pull rates changed noticeably. There is enough evidence to show the change was intentional on the packaging side. Keep this in mind when comparing sets before Wilds Unknown with Wilds Unknown and later sets.</p></div>
+    <div class="notice"><p><strong>Keep in mind:</strong> starting with Wilds Unknown (set 12), pull rates changed noticeably. There is enough evidence to show the change was intentional on the packaging side. Be careful when comparing sets before Wilds Unknown with Wilds Unknown and later sets, because they were not produced the same way.</p></div>
     <fieldset><legend>Sets</legend><div class="checks" id="setchecks">${st.sets.map((s) =>
       `<label><input type="checkbox" value="${s.id}"${st.picked.has(s.id) ? ' checked' : ''}> ${esc(setLabel(s))}</label>`).join('')}</div></fieldset>
     <div class="seg" role="group" aria-label="Rarity" id="rseg">${RARITIES.map((r) => `<button type="button" data-r="${r.key}" aria-pressed="false">${r.label}</button>`).join('')}</div>

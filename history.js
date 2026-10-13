@@ -2,7 +2,7 @@
 import { get, count } from './api.js';
 import { mountChrome } from './chrome.js';
 import { SITE_NAME } from './config.js';
-import { esc, num, fmtInt, fmtDate, showError, SET_ORDER, setLabel } from './lib.js';
+import { resultsPublic, esc, num, fmtInt, fmtDate, showError, SET_ORDER, setLabel } from './lib.js';
 
 const app = document.getElementById('app');
 mountChrome('history');
@@ -26,7 +26,9 @@ async function init() {
         <thead><tr><th scope="col">Set</th>${anyDate ? '<th scope="col">Released</th>' : ''}<th scope="col">Reports</th><th scope="col">Packs opened</th><th scope="col">Status</th></tr></thead>
         <tbody>${sets.map((s, i) => `<tr><td><a href="set.html?set=${encodeURIComponent(s.slug)}">${esc(setLabel(s))}</a></td>
           ${anyDate ? `<td class="n">${s.released_on ? esc(fmtDate(s.released_on + 'T12:00:00')) : '—'}</td>` : ''}
-          <td class="n">${summ[s.id] ? (s.reported_count == null ? 'Totals only' : fmtInt(s.reported_count)) : fmtInt(reports[i])}</td><td class="n">${fmtInt(packs[s.id] || 0)}</td>
+          ${resultsPublic({ imported: summ[s.id], reports: reports[i], packs: packs[s.id] || 0 })
+            ? `<td class="n">${summ[s.id] ? (s.reported_count == null ? 'Totals only' : fmtInt(s.reported_count)) : fmtInt(reports[i])}</td><td class="n">${fmtInt(packs[s.id] || 0)}</td>`
+            : '<td class="n">—</td><td class="n">—</td>'}
           <td class="n">${s.accepting_submissions ? 'Collecting data' : 'View only'}</td></tr>`).join('')}</tbody></table></div>` : '<p>No sets yet.</p>'}
     </div>`;
   } catch (e) { showError(app, e, init); }

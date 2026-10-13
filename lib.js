@@ -57,6 +57,13 @@ export function sortProducts(products) {
   return [...products].sort((a, b) => rank(a) - rank(b));
 }
 
+// Results stay hidden until a set has enough data, so a few early lucky reports don't give the wrong impression.
+// Sets with imported totals (past sets) are always shown.
+export const MIN_REPORTS = 100;
+export const MIN_PACKS = 3000;
+export const resultsPublic = ({ imported, reports, packs }) => !!imported || (reports >= MIN_REPORTS && packs >= MIN_PACKS);
+export const WAIT_MESSAGE = 'Still collecting data before making results public. Please be sure to tell your friends to report their results!';
+
 export function buildTable(products, totals, hideEmpty = false) {
   products = sortProducts(products);
   const by = (pid, bulk) => totals.filter((t) => t.product_id === pid && !!t.is_bulk === bulk);

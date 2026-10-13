@@ -4,7 +4,7 @@ import { mountChrome } from './chrome.js';
 import { SITE_NAME } from './config.js';
 import {
   RARITIES, trackedOf, RARITY_CLASS, FILL_CLASS, THIN, SET_ORDER, setLabel, currentSet, DASH, esc, num, fmtInt, fmtAmt, fmtPct, fmtPPC, fmtDate, hueFor,
-  buildTable, sortProducts, binomPmf, atLeast, baselineRates, histFor, histStats, showError,
+  buildTable, sortProducts, resultsPublic, WAIT_MESSAGE, binomPmf, atLeast, baselineRates, histFor, histStats, showError,
 } from './lib.js';
 import { pie, histChart } from './charts.js';
 
@@ -45,6 +45,7 @@ function render({ sets, set, products, totals, hist, stats, reports, last }) {
 
   const options = sets.map((s) => `<option value="${esc(s.slug)}"${s.id === set.id ? ' selected' : ''}>${esc(setLabel(s))}</option>`).join('');
   const hasData = t.overall.packs > 0;
+  const open = resultsPublic({ imported: summaryOnly, reports, packs: t.overall.packs });
 
   app.innerHTML = `
     <header class="banner" id="banner"><div class="wrap">
@@ -53,12 +54,12 @@ function render({ sets, set, products, totals, hist, stats, reports, last }) {
         <label>Showing set <select id="setpick" aria-label="Choose a set">${options}</select></label>
         ${set.accepting_submissions ? '<a class="btn" href="submit.html?set=' + encodeURIComponent(set.slug) + '">Report your pulls</a>' : '<span class="viewonly">View only. This set is no longer collecting reports.</span>'}
       </div>
-      <dl class="facts">
+      ${open ? `<dl class="facts">
         ${summaryOnly && set.reported_count == null ? '' : `<div><dt>Reports</dt><dd>${fmtInt(summaryOnly ? set.reported_count : reports)}</dd></div>`}
         <div><dt>Packs opened</dt><dd>${fmtInt(t.overall.packs)}</dd></div>
         ${t.overall.boxes !== undefined ? `<div><dt>Boxes opened</dt><dd>${fmtAmt(t.overall.boxes)}</dd></div>` : ''}
         ${last && !summaryOnly ? `<div><dt>Latest report</dt><dd>${esc(fmtDate(last))}</dd></div>` : ''}
-      </dl>
+      </dl>` : ''}
     </div></header>
     <div class="wrap" id="body"></div>`;
   const banner = document.getElementById('banner');
@@ -80,6 +81,7 @@ function render({ sets, set, products, totals, hist, stats, reports, last }) {
       : `<h2>No pulls were collected</h2><p>This set is view only, and no pulls were collected for it.</p>`;
     return;
   }
+  if (!open) { body.innerHTML = `<h2>Results coming soon</h2><p class="notice">${esc(WAIT_MESSAGE)}</p>`; return; }
 
   body.innerHTML = `
     <h2>Pulls by product</h2>
