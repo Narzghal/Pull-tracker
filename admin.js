@@ -50,7 +50,7 @@ async function loadBase() {
 }
 
 // Shrinks a picture to a sensible size in the browser before uploading (keeps pages fast and storage small).
-async function shrinkImage(file, maxWidth = 1400) {
+async function shrinkImage(file, maxWidth = 2400) {
   const bmp = await createImageBitmap(file);
   const scale = Math.min(1, maxWidth / bmp.width);
   const c = document.createElement('canvas');
