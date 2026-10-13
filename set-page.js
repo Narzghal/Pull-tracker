@@ -45,7 +45,7 @@ function render({ sets, set, products, totals, hist, reports, last }) {
 
   app.innerHTML = `
     <header class="banner" id="banner"><div class="wrap">
-      <h1>Choose a set to see reported results</h1>
+      <h1>Choose a Set to see results and add your own</h1>
       <div class="controls">
         <label>Showing set <select id="setpick" aria-label="Choose a set">${options}</select></label>
         ${set.accepting_submissions ? '<a class="btn" href="submit.html?set=' + encodeURIComponent(set.slug) + '">Report your pulls</a>' : '<span class="viewonly">View only. This set is no longer collecting reports.</span>'}
