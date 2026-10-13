@@ -50,8 +50,8 @@ export function trackedOf(set) {
   return t ? RARITIES.filter((r) => t.includes(r.key)) : RARITIES;
 }
 
-// Products listed in the same order as the spreadsheet: Troves, Prerelease Box, Individual Sealed Box, Sealed Case (anything else after).
-const PRODUCT_ORDER = ['trove', 'prerelease-box', 'sealed-box', 'sealed-case'];
+// Products listed in this order: Prerelease Box, Troves, Individual Sealed Box, Sealed Case (anything else after).
+const PRODUCT_ORDER = ['prerelease-box', 'trove', 'sealed-box', 'sealed-case'];
 export function sortProducts(products) {
   const rank = (p) => { const i = PRODUCT_ORDER.indexOf(p.slug); return i < 0 ? PRODUCT_ORDER.length : i; };
   return [...products].sort((a, b) => rank(a) - rank(b));
