@@ -4,7 +4,7 @@ import { mountChrome } from './chrome.js';
 import { SITE_NAME } from './config.js';
 import {
   RARITIES, trackedOf, RARITY_CLASS, FILL_CLASS, THIN, SET_ORDER, setLabel, currentSet, DASH, esc, num, fmtInt, fmtAmt, fmtPct, fmtPPC, fmtDate, hueFor,
-  buildTable, binomPmf, atLeast, baselineRates, histFor, histStats, showError,
+  buildTable, sortProducts, binomPmf, atLeast, baselineRates, histFor, histStats, showError,
 } from './lib.js';
 import { pie, histChart } from './charts.js';
 
@@ -157,10 +157,7 @@ function expectedIntro(baseline, baseRow, rates) {
 }
 
 function expectedTables(products, baseline, rates, hist, stats, tr, t) {
-  // Same order as the spreadsheet: Troves, Prerelease Box, Individual Sealed Box, Sealed Case (anything else after).
-  const ORDER = ['trove', 'prerelease-box', 'sealed-box', 'sealed-case'];
-  const rank = (p) => { const i = ORDER.indexOf(p.slug); return i < 0 ? ORDER.length : i; };
-  products = [...products].sort((a, b) => rank(a) - rank(b));
+  products = sortProducts(products);
   const has = (k) => tr.some((r) => r.key === k);
   const pm = (p, rarity) => binomPmf(p.packs_per_item, rates[rarity]);
   const simple = (key, label) => `

@@ -50,7 +50,15 @@ export function trackedOf(set) {
   return t ? RARITIES.filter((r) => t.includes(r.key)) : RARITIES;
 }
 
+// Products listed in the same order as the spreadsheet: Troves, Prerelease Box, Individual Sealed Box, Sealed Case (anything else after).
+const PRODUCT_ORDER = ['trove', 'prerelease-box', 'sealed-box', 'sealed-case'];
+export function sortProducts(products) {
+  const rank = (p) => { const i = PRODUCT_ORDER.indexOf(p.slug); return i < 0 ? PRODUCT_ORDER.length : i; };
+  return [...products].sort((a, b) => rank(a) - rank(b));
+}
+
 export function buildTable(products, totals, hideEmpty = false) {
+  products = sortProducts(products);
   const by = (pid, bulk) => totals.filter((t) => t.product_id === pid && !!t.is_bulk === bulk);
   const as = (list, m = 1) => list.map((t) => ({ t, m }));
   const rows = [];
