@@ -1,5 +1,6 @@
 // The submission form. Checks everything in the browser first; the database checks it again.
-import { get, rpc, cardImageUrl } from './api.js';
+import { get, submitReport, cardImageUrl } from './api.js';
+import { TURNSTILE_SITE_KEY } from './security.js';
 import { mountChrome } from './chrome.js';
 import { SITE_NAME } from './config.js';
 import { RARITIES as ALL_RARITIES, trackedOf, RARITY_CLASS, esc, SET_ORDER } from './lib.js';
@@ -121,7 +122,9 @@ function renderAfterConsent() {
     <div class="chipbar" role="group" aria-label="Add a product">${state.products.map((p) => `<button class="btn secondary prodbtn" type="button" data-add="${p.id}">${prodImg(p, 'prodpic')}<span>Add ${esc(p.name)}</span></button>`).join('')}</div>
     <div id="entries" aria-live="polite"></div>
     <div id="summary-errors" class="notice error" role="alert" hidden></div>
+    ${TURNSTILE_SITE_KEY ? '<div id="ts-box" class="ts-box"></div>' : ''}
     <p><button class="btn" id="send" type="submit">Send report</button></p>`;
+  if (TURNSTILE_SITE_KEY) mountTurnstile(box.querySelector('#ts-box'));
   box.querySelector('.chipbar').addEventListener('click', (e) => { const b = e.target.closest('[data-add]'); if (b) addEntry(Number(b.dataset.add)); });
   app.querySelector('#f').onsubmit = onSubmit;
   const entries = box.querySelector('#entries');
@@ -270,18 +273,53 @@ async function onSubmit(ev) {
   }
   // Hidden trap field: real people never fill it in. Pretend it worked so bots don't learn anything.
   if (app.querySelector('#website').value) { finish(); return; }
+  if (TURNSTILE_SITE_KEY && !state.tsToken) {
+    summary.hidden = false;
+    summary.innerHTML = '<p><strong>Please complete the security check</strong> just above the Send button, then send again.</p>';
+    return;
+  }
   state.sending = true;
   const send = app.querySelector('#send');
   send.disabled = true; send.textContent = 'Sending…';
   try {
-    await rpc('submit_report', { p_set_slug: state.set.slug, p_agreed: true, p_items: payload() });
+    await submitReport({ p_set_slug: state.set.slug, p_agreed: true, p_items: payload() }, TURNSTILE_SITE_KEY ? state.tsToken : null);
     finish();
   } catch (e) {
     state.sending = false;
+    resetTurnstile(); // a check can only be used once
     send.disabled = false; send.textContent = 'Send report';
     summary.hidden = false;
     summary.innerHTML = `<p><strong>Your report was not sent.</strong> ${esc(friendly(e))}</p><p>Nothing was saved, so it's safe to try again.</p>`;
   }
+}
+
+// ---------- Turnstile ("I'm not a bot" check) ----------
+let tsScript = null;
+function loadTurnstile() {
+  if (window.turnstile) return Promise.resolve();
+  if (!tsScript) tsScript = new Promise((resolve, reject) => {
+    const el = document.createElement('script');
+    el.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    el.async = true; el.onload = resolve; el.onerror = () => { tsScript = null; reject(new Error('load')); };
+    document.head.appendChild(el);
+  });
+  return tsScript;
+}
+function mountTurnstile(host) {
+  state.tsToken = null; state.tsWidget = null;
+  loadTurnstile().then(() => {
+    if (!host.isConnected) return;
+    state.tsWidget = window.turnstile.render(host, {
+      sitekey: TURNSTILE_SITE_KEY,
+      callback: (t) => { state.tsToken = t; },
+      'expired-callback': () => { state.tsToken = null; },
+      'error-callback': () => { state.tsToken = null; },
+    });
+  }).catch(() => { host.innerHTML = '<p class="muted">The security check could not load. Check your connection or ad blocker, then reload the page.</p>'; });
+}
+function resetTurnstile() {
+  state.tsToken = null;
+  if (state.tsWidget !== null && state.tsWidget !== undefined && window.turnstile) { try { window.turnstile.reset(state.tsWidget); } catch { /* widget gone */ } }
 }
 
 function friendly(e) {

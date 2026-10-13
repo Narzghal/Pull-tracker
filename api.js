@@ -4,6 +4,9 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 const REST = SUPABASE_URL + '/rest/v1/';
 const TOKEN_KEY = 'pt_admin_token';
 
+// Messages the database sends when the admin's login has run out (they last about an hour).
+export const EXPIRED = /exp"? claim|jwt expired|invalid jwt|token is expired/i;
+
 export class ApiError extends Error {
   constructor(message, status = 0, code = '') { super(message); this.status = status; this.code = code; }
 }
@@ -27,7 +30,7 @@ async function request(url, { method = 'GET', body, headers = {}, auth = false }
     let j = null;
     try { j = await res.json(); } catch { /* not JSON */ }
     const msg = (j && (j.message || j.error_description || j.msg)) || `Request failed (${res.status}).`;
-    throw new ApiError(msg, res.status, (j && j.code) || '');
+    throw new ApiError(msg, EXPIRED.test(msg) ? 401 : res.status, (j && j.code) || '');
   }
   return res;
 }
@@ -44,6 +47,15 @@ export async function count(path, { auth = false } = {}) {
     if (e.status === 416) return 0;
     throw e;
   }
+}
+
+// Sends a report. With a Turnstile token it goes through the checking function; without one it goes straight to the database.
+export async function submitReport(args, token) {
+  if (!token) return rpc('submit_report', args);
+  return (await request(SUPABASE_URL + '/functions/v1/submit-report', {
+    method: 'POST',
+    body: { set_slug: args.p_set_slug, agreed: args.p_agreed, items: args.p_items, token },
+  })).json();
 }
 
 export async function rpc(name, args) { return (await request(REST + 'rpc/' + name, { method: 'POST', body: args })).json(); }
@@ -80,10 +92,16 @@ export async function uploadCardImage(path, blob) {
   } catch { throw new ApiError('Could not reach the database. Check your connection and try again.'); }
   if (!res.ok) {
     let j = null; try { j = await res.json(); } catch { /* not JSON */ }
-    throw new ApiError((j && (j.message || j.error)) || `Upload failed (${res.status}).`, res.status);
+    const msg = (j && (j.message || j.error)) || `Upload failed (${res.status}).`;
+    throw new ApiError(msg, EXPIRED.test(msg) ? 401 : res.status);
   }
 }
 export async function deleteCardImage(path) {
   const res = await fetch(STORAGE + 'card-images/' + path, { method: 'DELETE', headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + getToken() } }).catch(() => null);
+  if (res && !res.ok && res.status !== 404) {
+    let j = null; try { j = await res.json(); } catch { /* not JSON */ }
+    const msg = (j && (j.message || j.error)) || '';
+    if (EXPIRED.test(msg)) throw new ApiError(msg, 401);
+  }
   if (!res || (!res.ok && res.status !== 404)) throw new ApiError('Could not remove the picture. Try again.');
 }
