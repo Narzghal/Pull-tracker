@@ -2,7 +2,7 @@
 import { get, rpc, cardImageUrl } from './api.js';
 import { mountChrome } from './chrome.js';
 import { SITE_NAME } from './config.js';
-import { RARITIES as ALL_RARITIES, trackedOf, RARITY_CLASS, esc, SET_ORDER, setLabel } from './lib.js';
+import { RARITIES as ALL_RARITIES, trackedOf, RARITY_CLASS, esc, SET_ORDER } from './lib.js';
 
 const app = document.getElementById('app');
 mountChrome('submit');
@@ -21,8 +21,8 @@ async function init() {
       app.innerHTML = '<div class="wrap form-wrap"><h1>Reporting is closed</h1><p>No set is taking reports right now. Check back when the next set is out.</p></div>';
       return;
     }
-    const wanted = new URLSearchParams(location.search).get('set');
-    await chooseSet(state.sets.find((s) => s.slug === wanted) || state.sets[0]);
+    // One set takes reports at a time: the one ticked "Collecting data" in the admin page (newest if several).
+    await chooseSet(state.sets[0]);
   } catch (e) {
     app.innerHTML = `<div class="wrap form-wrap"><div class="notice error" role="alert"><p><strong>Couldn't load the form.</strong> ${esc(e.message)}</p><p><button class="btn" id="retry" type="button">Try again</button></p></div></div>`;
     app.querySelector('#retry').addEventListener('click', init);
@@ -84,14 +84,10 @@ function render() {
     <h1>Report your pulls</h1>
     <p>This tracker collects pulls from sealed product in every language except Japanese and Chinese. It is a fan-made project, and the numbers are only as good as the reports, so please record <strong>every</strong> opening, lucky or not. Leaving out the unlucky or the too-lucky ones skews the data.</p>
     <p class="muted">Reports are anonymous, with no account or email. They can't be edited after you send them, so check your numbers first.</p>
+    <p class="collecting">We are currently collecting data from <strong>${esc(set.name)}</strong></p>
+    ${set.logo_path ? `<img class="setlogo" src="${esc(cardImageUrl({ path: set.logo_path, updated_at: set.logo_updated_at }))}" alt="${esc(set.name)} logo">` : ''}
 
     <form id="f" novalidate>
-      <fieldset>
-        <legend>Which set?</legend>
-        <label for="setsel" class="visually-hidden">Set</label>
-        <select id="setsel">${state.sets.map((s) => `<option value="${esc(s.slug)}"${s.id === set.id ? ' selected' : ''}>${esc(setLabel(s))}</option>`).join('')}</select>
-      </fieldset>
-
       <fieldset id="consent">
         <legend>Before you start</legend>
         <p>I have read the above and <strong>I agree to be accurate in reporting my pulls</strong>. I understand this is community-sourced data and should not be used to try to prove a guarantee of pull rates, as Ravensburger has said there are no guarantees.</p>
@@ -105,7 +101,6 @@ function render() {
     </form>
   </div>`;
   const f = app.querySelector('#f');
-  f.querySelector('#setsel').addEventListener('change', (e) => chooseSet(state.sets.find((s) => s.slug === e.target.value)));
   f.querySelectorAll('input[name=consent]').forEach((r) => r.addEventListener('change', () => { state.consent = r.value; renderAfterConsent(); }));
   renderAfterConsent();
 }

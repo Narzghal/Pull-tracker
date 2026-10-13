@@ -50,15 +50,15 @@ async function loadBase() {
 }
 
 // Shrinks a picture to a sensible size in the browser before uploading (keeps pages fast and storage small).
-async function shrinkImage(file, maxWidth = 2400) {
+async function shrinkImage(file, maxWidth = 2400, png = false) {
   const bmp = await createImageBitmap(file);
   const scale = Math.min(1, maxWidth / bmp.width);
   const c = document.createElement('canvas');
   c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+  if (!png) { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); } // logos keep their see-through background
   ctx.drawImage(bmp, 0, 0, c.width, c.height);
-  return new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('Could not read that picture.'))), 'image/jpeg', 0.85));
+  return new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('Could not read that picture.'))), png ? 'image/png' : 'image/jpeg', 0.85));
 }
 
 function shell() {
@@ -189,6 +189,15 @@ function cardPicsHTML(s) {
     }).join('')}</div>`;
 }
 
+function logoHTML(s) {
+  if (!('logo_path' in s)) return '<p class="muted small">Set logo: run <code>add-set-logos.sql</code> in Supabase first, then reload this page.</p>';
+  return `<div class="cardpic"><strong>Official logo</strong>
+    ${s.logo_path ? `<img src="${esc(cardImageUrl({ path: s.logo_path, updated_at: s.logo_updated_at }))}" alt="${esc(s.name)} logo">` : '<span class="muted small">No logo yet</span>'}
+    <label class="btn secondary small">${s.logo_path ? 'Replace logo' : 'Choose logo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-logo="${s.id}"></label>
+    ${s.logo_path ? `<button class="btn danger small" type="button" data-clearlogo="${s.id}">Remove</button>` : ''}</div>
+    <p class="muted small">Shown under "We are currently collecting data from…" on the report form. A PNG with a see-through background looks best.</p>`;
+}
+
 function setsPanel(p) {
   const has = (sid, pid) => S.setProducts.some((x) => x.set_id === sid && x.product_id === pid);
   p.innerHTML = `
@@ -205,6 +214,7 @@ function setsPanel(p) {
         <span class="muted small">${s.accent_color ? 'Custom color.' : 'Automatic color.'}</span></div>
       <p class="muted small">Rarities tracked in this set (untick any that didn't exist or weren't counted; they're hidden on the set's page):</p>
       <div class="checks">${RARITIES.map((r) => `<label><input type="checkbox" data-tr="${s.id}:${r.key}"${(s.tracked_rarities || RARITIES.map((x) => x.key)).includes(r.key) ? ' checked' : ''}> ${esc(r.label)}</label>`).join('')}</div>
+      ${logoHTML(s)}
       ${cardPicsHTML(s)}
       <p class="muted small">Products in this set:</p>
       <div class="checks">${S.products.map((pr) => `<label><input type="checkbox" data-sp="${s.id}:${pr.id}"${has(s.id, pr.id) ? ' checked' : ''}> ${esc(pr.name)}</label>`).join('')}</div>
@@ -222,6 +232,17 @@ function setsPanel(p) {
   p.onchange = async (e) => {
     const el = e.target;
     try {
+      if (el.dataset.logo) {
+        const file = el.files && el.files[0];
+        if (!file) return;
+        const set = S.sets.find((x) => x.id === Number(el.dataset.logo));
+        flash('Uploading…');
+        const blob = await shrinkImage(file, 1000, true);
+        const path = `${set.slug}/logo.png`;
+        await uploadCardImage(path, blob);
+        await patch(`sets?id=eq.${set.id}`, { logo_path: path, logo_updated_at: new Date().toISOString() });
+        await loadBase(); setsPanel(p); flash('Logo saved.'); return;
+      }
       if (el.dataset.pic) {
         const file = el.files && el.files[0];
         if (!file) return;
@@ -256,6 +277,12 @@ function setsPanel(p) {
     } catch (err) { fail(err); }
   };
   p.onclick = async (e) => {
+    const lg = e.target.closest('[data-clearlogo]');
+    if (lg) {
+      const set = S.sets.find((x) => x.id === Number(lg.dataset.clearlogo));
+      try { if (set.logo_path) await deleteCardImage(set.logo_path); await patch(`sets?id=eq.${set.id}`, { logo_path: null, logo_updated_at: null }); await loadBase(); setsPanel(p); flash('Logo removed.'); } catch (err) { fail(err); }
+      return;
+    }
     const pic = e.target.closest('[data-clearpic]');
     if (pic) {
       const [sid, key] = pic.dataset.clearpic.split(':');
