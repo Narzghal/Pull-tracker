@@ -1,5 +1,5 @@
 // Admin only: review reports, hide or delete bad ones, and manage sets and products.
-import { get, count, post, patch, del, login, logout, getToken, ApiError } from './api.js';
+import { get, count, post, patch, del, login, logout, getToken, ApiError, uploadCardImage, deleteCardImage, cardImageUrl } from './api.js';
 import { mountChrome } from './chrome.js';
 import { SITE_NAME } from './config.js';
 import { RARITIES, esc, num, fmtDate, SET_ORDER, setLabel } from './lib.js';
@@ -8,7 +8,7 @@ const app = document.getElementById('app');
 mountChrome('');
 document.title = `Admin | ${SITE_NAME}`;
 
-const S = { me: null, tab: 'review', sets: [], products: [], setProducts: [], subs: [], filter: { set: '', status: 'visible', flagged: false }, page: 0, total: 0, msg: '' };
+const S = { cardImages: [], cardPicsOk: true, me: null, tab: 'review', sets: [], products: [], setProducts: [], subs: [], filter: { set: '', status: 'visible', flagged: false }, page: 0, total: 0, msg: '' };
 const PAGE = 40;
 
 start();
@@ -46,6 +46,19 @@ async function loadBase() {
     get('set_products?select=*', { auth: true }),
   ]);
   S.sets = sets; S.products = products; S.setProducts = sp;
+  try { S.cardImages = await get('set_card_images?select=*', { auth: true }); S.cardPicsOk = true; } catch { S.cardImages = []; S.cardPicsOk = false; }
+}
+
+// Shrinks a picture to a sensible size in the browser before uploading (keeps pages fast and storage small).
+async function shrinkImage(file, maxWidth = 1400) {
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, maxWidth / bmp.width);
+  const c = document.createElement('canvas');
+  c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.drawImage(bmp, 0, 0, c.width, c.height);
+  return new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('Could not read that picture.'))), 'image/jpeg', 0.85));
 }
 
 function shell() {
@@ -88,6 +101,7 @@ const LIMITS = { iconic: 0.05, enchanted: 0.25, epic: 0.6, legendary: 0.9, legen
 function flagsFor(sub) {
   const out = [];
   for (const r of sub.reports || []) {
+    if (r.is_summary) continue;
     for (const x of RARITIES) {
       if (r.packs && r[x.key] / r.packs > LIMITS[x.key] && r[x.key] >= 2) out.push(`${r[x.key]} ${x.label} in ${r.packs} packs (${prodName(r.product_id)})`);
     }
@@ -106,7 +120,7 @@ async function reviewPanel(p) {
   p.querySelector('#fst').onchange = (e) => { S.filter.status = e.target.value; redo(); };
   p.querySelector('#ff').onchange = (e) => { S.filter.flagged = e.target.checked; redo(); };
   try {
-    let q = `submissions?select=id,set_id,status,created_at,reports(id,product_id,is_bulk,quantity,item_number,slot_number,packs,iconic,enchanted,epic,legendary,legendary_foil)&order=created_at.desc&limit=${PAGE}&offset=${S.page * PAGE}`;
+    let q = `submissions?select=id,set_id,status,created_at,reports(id,product_id,is_bulk,is_summary,quantity,item_number,slot_number,packs,iconic,enchanted,epic,legendary,legendary_foil)&order=created_at.desc&limit=${PAGE}&offset=${S.page * PAGE}`;
     let cq = 'submissions?select=id';
     for (const part of [S.filter.set && `set_id=eq.${S.filter.set}`, S.filter.status !== 'all' && `status=eq.${S.filter.status}`].filter(Boolean)) { q += '&' + part; cq += '&' + part; }
     const [subs, total] = await Promise.all([get(q, { auth: true }), count(cq, { auth: true })]);
@@ -135,7 +149,7 @@ function subHTML(s) {
     `<li>${g.is_bulk ? `Bulk, ${g.quantity} × ` : ''}${esc(prodName(g.product_id))}: ${RARITIES.map((x) => `${g[x.key]} ${x.label}`).join(', ')} <span class="muted">(${g.packs} packs)</span></li>`).join('');
   const hidden = s.status === 'hidden';
   return `<div class="sub${s.flags.length ? ' flagged' : ''}${hidden ? ' hidden-sub' : ''}" data-id="${s.id}">
-    <div class="sub-head"><strong>#${s.id} · ${esc(setName(s.set_id))}</strong><span class="muted small">${esc(fmtDate(s.created_at))}${hidden ? ' · hidden' : ''}</span></div>
+    <div class="sub-head"><strong>#${s.id} · ${esc(setName(s.set_id))}${(s.reports || []).some((r) => r.is_summary) ? ' · Imported totals' : ''}</strong><span class="muted small">${esc(fmtDate(s.created_at))}${hidden ? ' · hidden' : ''}</span></div>
     ${s.flags.length ? `<p class="flag">Unusual: ${esc(s.flags.join('; '))}</p>` : ''}
     <ul>${lines}</ul>
     <div class="row-actions">
@@ -161,6 +175,19 @@ async function onAction(e) {
 }
 
 // ---------- Sets ----------
+function cardPicsHTML(s) {
+  if (!S.cardPicsOk) return '<p class="muted small">Card pictures: run <code>add-card-images.sql</code> in Supabase first, then reload this page.</p>';
+  const tr = RARITIES.filter((r) => (s.tracked_rarities || RARITIES.map((x) => x.key)).includes(r.key));
+  return `<p class="muted small">Card pictures shown on the report form (optional). Pick an image and it uploads right away.</p>
+    <div class="cardpics">${tr.map((r) => {
+      const row = S.cardImages.find((x) => x.set_id === s.id && x.rarity === r.key);
+      return `<div class="cardpic"><strong>${esc(r.label)}</strong>
+        ${row ? `<img src="${esc(cardImageUrl(row))}" alt="${esc(r.label)} cards">` : '<span class="muted small">No picture yet</span>'}
+        <label class="btn secondary small">${row ? 'Replace picture' : 'Choose picture'}<input type="file" accept="image/jpeg,image/png,image/webp" data-pic="${s.id}:${r.key}"></label>
+        ${row ? `<button class="btn danger small" type="button" data-clearpic="${s.id}:${r.key}">Remove</button>` : ''}</div>`;
+    }).join('')}</div>`;
+}
+
 function setsPanel(p) {
   const has = (sid, pid) => S.setProducts.some((x) => x.set_id === sid && x.product_id === pid);
   p.innerHTML = `
@@ -171,9 +198,13 @@ function setsPanel(p) {
         <label><input type="checkbox" data-accept="${s.id}"${s.accepting_submissions ? ' checked' : ''}> Collecting data</label>
         <span class="muted small">${s.accepting_submissions ? 'Open: people can send reports.' : 'View only.'}</span></div>
       <div class="form-row"><label>Set number <input type="number" min="1" step="1" data-num="${s.id}" value="${s.set_number ?? ''}"></label>
+        <label>Responses from earlier tracking <input type="number" min="0" step="1" data-rc="${s.id}" value="${s.reported_count ?? ''}"></label>
         <label>Banner color <input type="color" data-color="${s.id}" value="${esc(s.accent_color || '#2f6fdb')}"></label>
         <button class="btn secondary small" type="button" data-clearcolor="${s.id}">Use automatic color</button>
         <span class="muted small">${s.accent_color ? 'Custom color.' : 'Automatic color.'}</span></div>
+      <p class="muted small">Rarities tracked in this set (untick any that didn't exist or weren't counted; they're hidden on the set's page):</p>
+      <div class="checks">${RARITIES.map((r) => `<label><input type="checkbox" data-tr="${s.id}:${r.key}"${(s.tracked_rarities || RARITIES.map((x) => x.key)).includes(r.key) ? ' checked' : ''}> ${esc(r.label)}</label>`).join('')}</div>
+      ${cardPicsHTML(s)}
       <p class="muted small">Products in this set:</p>
       <div class="checks">${S.products.map((pr) => `<label><input type="checkbox" data-sp="${s.id}:${pr.id}"${has(s.id, pr.id) ? ' checked' : ''}> ${esc(pr.name)}</label>`).join('')}</div>
       <div class="form-row"><label>Baseline for expected rates <select data-base="${s.id}">${S.products.map((pr) => `<option value="${pr.id}"${s.baseline_product_id === pr.id ? ' selected' : ''}>${esc(pr.name)}</option>`).join('')}</select></label></div>
@@ -190,10 +221,31 @@ function setsPanel(p) {
   p.onchange = async (e) => {
     const el = e.target;
     try {
+      if (el.dataset.pic) {
+        const file = el.files && el.files[0];
+        if (!file) return;
+        const [sid, key] = el.dataset.pic.split(':');
+        const set = S.sets.find((x) => x.id === Number(sid));
+        flash('Uploading…');
+        const blob = await shrinkImage(file);
+        const path = `${set.slug}/${key}.jpg`;
+        await uploadCardImage(path, blob);
+        await post('set_card_images', { set_id: set.id, rarity: key, path, updated_at: new Date().toISOString() }, { merge: true });
+        await loadBase(); setsPanel(p); flash('Picture saved.'); return;
+      }
       if (el.dataset.accept) { await patch(`sets?id=eq.${el.dataset.accept}`, { accepting_submissions: el.checked }); await loadBase(); setsPanel(p); flash(el.checked ? 'Collecting data again for this set.' : 'This set is now view only.'); return; }
       else if (el.dataset.color) { await patch(`sets?id=eq.${el.dataset.color}`, { accent_color: el.value }); await loadBase(); setsPanel(p); flash('Banner color saved.'); return; }
+      else if (el.dataset.rc) { await patch(`sets?id=eq.${el.dataset.rc}`, { reported_count: el.value === '' ? null : Number(el.value) }); await loadBase(); setsPanel(p); flash('Saved.'); return; }
       else if (el.dataset.num) { await patch(`sets?id=eq.${el.dataset.num}`, { set_number: el.value ? Number(el.value) : null }); await loadBase(); setsPanel(p); flash('Saved.'); return; }
-      else if (el.dataset.sp) {
+      else if (el.dataset.tr) {
+        const [sid, key] = el.dataset.tr.split(':');
+        const set = S.sets.find((x) => x.id === Number(sid));
+        const cur = new Set(set.tracked_rarities || RARITIES.map((x) => x.key));
+        el.checked ? cur.add(key) : cur.delete(key);
+        if (!cur.size) { el.checked = true; return flash('At least one rarity must be tracked.', true); }
+        await patch(`sets?id=eq.${sid}`, { tracked_rarities: RARITIES.map((x) => x.key).filter((k) => cur.has(k)) });
+        await loadBase(); setsPanel(p); flash('Saved.'); return;
+      } else if (el.dataset.sp) {
         const [sid, pid] = el.dataset.sp.split(':');
         if (el.checked) await post('set_products', { set_id: Number(sid), product_id: Number(pid) });
         else await del(`set_products?set_id=eq.${sid}&product_id=eq.${pid}`);
@@ -203,6 +255,13 @@ function setsPanel(p) {
     } catch (err) { fail(err); }
   };
   p.onclick = async (e) => {
+    const pic = e.target.closest('[data-clearpic]');
+    if (pic) {
+      const [sid, key] = pic.dataset.clearpic.split(':');
+      const row = S.cardImages.find((x) => x.set_id === Number(sid) && x.rarity === key);
+      try { if (row) await deleteCardImage(row.path); await del(`set_card_images?set_id=eq.${sid}&rarity=eq.${key}`); await loadBase(); setsPanel(p); flash('Picture removed.'); } catch (err) { fail(err); }
+      return;
+    }
     const b = e.target.closest('[data-clearcolor]');
     if (!b) return;
     try { await patch(`sets?id=eq.${b.dataset.clearcolor}`, { accent_color: null }); await loadBase(); setsPanel(p); flash('This set now uses an automatic color.'); } catch (err) { fail(err); }

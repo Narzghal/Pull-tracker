@@ -49,8 +49,9 @@ export async function count(path, { auth = false } = {}) {
 export async function rpc(name, args) { return (await request(REST + 'rpc/' + name, { method: 'POST', body: args })).json(); }
 
 // Admin-only writes (the database refuses these unless you are logged in as the admin).
-export async function post(path, body, { ret = false } = {}) {
-  const r = await request(REST + path, { method: 'POST', body, auth: true, headers: { Prefer: ret ? 'return=representation' : 'return=minimal' } });
+export async function post(path, body, { ret = false, merge = false } = {}) {
+  const prefer = (ret ? 'return=representation' : 'return=minimal') + (merge ? ',resolution=merge-duplicates' : '');
+  const r = await request(REST + path, { method: 'POST', body, auth: true, headers: { Prefer: prefer } });
   return ret ? r.json() : null;
 }
 export async function patch(path, body) { await request(REST + path, { method: 'PATCH', body, auth: true, headers: { Prefer: 'return=minimal' } }); }
@@ -63,3 +64,26 @@ export async function login(email, password) {
   return j;
 }
 export function logout() { setToken(null); }
+
+// ---------- Card pictures (stored in Supabase storage; only the admin can change them) ----------
+const STORAGE = SUPABASE_URL + '/storage/v1/object/';
+export const cardImageUrl = (row) => `${STORAGE}public/card-images/${row.path}?v=${encodeURIComponent(row.updated_at || '')}`;
+
+export async function uploadCardImage(path, blob) {
+  let res;
+  try {
+    res = await fetch(STORAGE + 'card-images/' + path, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + getToken(), 'Content-Type': blob.type || 'image/jpeg', 'x-upsert': 'true' },
+      body: blob,
+    });
+  } catch { throw new ApiError('Could not reach the database. Check your connection and try again.'); }
+  if (!res.ok) {
+    let j = null; try { j = await res.json(); } catch { /* not JSON */ }
+    throw new ApiError((j && (j.message || j.error)) || `Upload failed (${res.status}).`, res.status);
+  }
+}
+export async function deleteCardImage(path) {
+  const res = await fetch(STORAGE + 'card-images/' + path, { method: 'DELETE', headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + getToken() } }).catch(() => null);
+  if (!res || (!res.ok && res.status !== 404)) throw new ApiError('Could not remove the picture. Try again.');
+}

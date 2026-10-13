@@ -1,5 +1,5 @@
 // The submission form. Checks everything in the browser first; the database checks it again.
-import { get, rpc } from './api.js';
+import { get, rpc, cardImageUrl } from './api.js';
 import { mountChrome } from './chrome.js';
 import { SITE_NAME } from './config.js';
 import { RARITIES as ALL_RARITIES, trackedOf, RARITY_CLASS, esc, SET_ORDER, setLabel } from './lib.js';
@@ -36,7 +36,27 @@ async function chooseSet(set) {
   state.products = sp.map((x) => x.products).filter(Boolean).sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
   state.entries = [];
   state.errors = {};
+  state.cardImgs = await findCardImages(set);
   render();
+}
+
+// Card pictures: the ones uploaded in the admin page, plus (as a backup) files named cards/<set-slug>/<rarity>.jpg in the site.
+// Only rarities that have a picture get a button on the form.
+async function findCardImages(set) {
+  const out = {};
+  try {
+    const rows = await get(`set_card_images?select=rarity,path,updated_at&set_id=eq.${set.id}`);
+    for (const r of rows) out[r.rarity] = cardImageUrl(r);
+  } catch { /* the pictures table isn't set up yet: fall back to files */ }
+  const probe = (r) => new Promise((resolve) => {
+    const url = `cards/${encodeURIComponent(set.slug)}/${r.key}.jpg`;
+    const img = new Image();
+    img.onload = () => resolve([r.key, url]);
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+  const extra = await Promise.all(RARITIES.filter((r) => !out[r.key]).map(probe));
+  return { ...Object.fromEntries(extra.filter(Boolean)), ...out };
 }
 
 let RARITIES = ALL_RARITIES; // narrowed to the chosen set's tracked rarities in chooseSet
@@ -140,8 +160,20 @@ function entryHTML(entry) {
       <input type="number" inputmode="numeric" min="2" step="1" data-id="${entry.id}" data-qty="1" value="${esc(entry.qty)}"></label>
       <p class="muted small">Enter the combined total for all of them.</p>` : ''}
     <div class="counts">${rowsHTML}</div>
+    ${cardRefHTML(entry)}
     <p class="field-error" id="err-${entry.id}" role="alert">${esc(err || '')}</p>
   </fieldset>`;
+}
+
+function cardRefHTML(entry) {
+  const imgs = state.cardImgs || {};
+  const have = RARITIES.filter((r) => imgs[r.key]);
+  if (!have.length) return '';
+  const open = entry.ref && imgs[entry.ref] ? RARITIES.find((r) => r.key === entry.ref) : null;
+  return `<div class="cardref"><span class="muted small">Not sure which cards count?</span>
+    <div class="seg" role="group" aria-label="Show card pictures">${have.map((r) =>
+      `<button type="button" data-ref="${entry.id}:${r.key}" aria-pressed="${open && open.key === r.key ? 'true' : 'false'}">${esc(r.label)} cards</button>`).join('')}</div>
+    ${open ? `<img class="cardimg" src="${esc(imgs[open.key])}" alt="The ${esc(open.label)} cards in ${esc(state.set.name)}" loading="lazy">` : ''}</div>`;
 }
 
 function renderEntries() {
@@ -171,6 +203,13 @@ function onChange(e) {
   renderEntries();
 }
 function onClick(e) {
+  const ref = e.target.closest('[data-ref]');
+  if (ref) {
+    const [id, key] = ref.dataset.ref.split(':');
+    const entry = state.entries.find((x) => x.id === Number(id));
+    if (entry) { entry.ref = entry.ref === key ? null : key; renderEntries(); }
+    return;
+  }
   const b = e.target.closest('[data-remove]');
   if (!b) return;
   state.entries = state.entries.filter((x) => x.id !== Number(b.dataset.remove));

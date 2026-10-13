@@ -204,3 +204,23 @@ td.thin { font-style: italic; opacity: .8; }
 .banner.has-accent { background: color-mix(in srgb, var(--accent) 72%, #000); border-bottom: 8px solid var(--accent); }
 @media (prefers-color-scheme: dark) { .banner.has-accent { background: color-mix(in srgb, var(--accent) 55%, #000); } }
 #app.has-accent th.grp { background: color-mix(in srgb, var(--accent) 30%, var(--surface)); }
+
+/* Very light set colors (like bright yellow): use the color itself as the banner and switch to dark text. */
+.banner.has-accent.light-accent { background: var(--accent); color: #1b1708; border-bottom-color: color-mix(in srgb, var(--accent) 65%, #000); }
+.banner.light-accent p, .banner.light-accent label, .banner.light-accent .facts dt { color: rgba(27,23,8,.85); }
+.banner.light-accent select { border-color: rgba(27,23,8,.45); background: rgba(255,255,255,.5); color: #1b1708; }
+.banner.light-accent a.btn { background: #1b1708; color: #fff; }
+.banner.light-accent .viewonly { background: rgba(27,23,8,.08); border-color: rgba(27,23,8,.4); color: #1b1708; }
+
+/* Optional card pictures on the report form */
+.cardref { margin-top: .9rem; display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; }
+.cardref .seg { display: flex; flex-wrap: wrap; gap: .4rem; border: 0; border-radius: 0; overflow: visible; margin: 0; }
+.cardref .seg button, .cardref .seg button + button { border: 1px solid var(--ink-2); border-radius: 999px; }
+.cardimg { display: block; max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line, rgba(0,0,0,.15)); }
+
+/* Card picture uploads in the admin page */
+.cardpics { display: grid; gap: .6rem; margin: .5rem 0 1rem; }
+.cardpic { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; }
+.cardpic strong { min-width: 8.5rem; }
+.cardpic img { height: 56px; width: auto; max-width: 120px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); }
+.cardpic input[type=file] { display: none; }
