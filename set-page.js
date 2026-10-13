@@ -98,8 +98,6 @@ function render({ sets, set, products, totals, hist, stats, reports, last }) {
     ${expectedIntro(baseline, baseRow, rates)}
     <div id="expected">${rates ? expectedTables(set.accepting_submissions ? products : products.filter((p) => { const r = t.rows.find((x) => x.key === 'p' + p.id); return r && !r.empty; }), baseline, rates, hist, stats, tr, t) : ''}</div>
 
-    ${hist.length ? `<h2>Reported results against the expected spread</h2>
-    <div id="histbox">${rates ? '' : '<p class="muted">Needs reports for the baseline product first.</p>'}</div>` : ''}
 
     <h2>Where the data comes from</h2>
     <div class="two" id="pies"></div>`;
@@ -113,7 +111,6 @@ function render({ sets, set, products, totals, hist, stats, reports, last }) {
   document.getElementById('viewseg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setView(b.dataset.view); });
   setView('pulls');
 
-  if (rates && hist.length) histSection(document.getElementById('histbox'), products, baseline, rates, hist, tr);
 
   const detailRows = t.rows.filter((r) => !r.empty);
   document.getElementById('pies').innerHTML = `
