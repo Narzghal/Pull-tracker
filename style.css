@@ -265,9 +265,7 @@ thead tr + tr th:first-child { position: static; left: auto; z-index: auto; }
 
 /* ---------- Proof of the Data page ---------- */
 .doc { max-width: 1180px; }
-.doc .panel, .doc h1, .doc .byline { max-width: 860px; }
-.doc .byline { margin: .25rem 0 1.25rem; color: var(--ink-2); }
-.doc .chip { display: inline-block; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: .1rem .65rem; font-size: .9rem; }
+.doc .panel, .doc h1 { max-width: 860px; }
 .doc h2 { margin-top: 1.75rem; }
 .doc p, .doc li { font-size: 1.05rem; }
 .doc li { margin: .35rem 0; }
@@ -288,12 +286,15 @@ thead tr + tr th:first-child { position: static; left: auto; z-index: auto; }
 .rad-sign { font-size: 1.5em; line-height: 1; margin-right: .1rem; }
 .radicand { border-top: 1.5px solid currentColor; padding: .1rem .25rem 0; }
 
-/* Tabs: side by side, scroll sideways on narrow screens */
-.doc-tabs { display: flex; gap: .15rem; overflow-x: auto; border-bottom: 2px solid var(--line); margin: 1rem 0 0; scrollbar-width: thin; }
-.doc-tab { flex: 0 0 auto; font: inherit; font-weight: 600; color: var(--ink-2); background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -2px; padding: .7rem .65rem; font-size: .95rem; cursor: pointer; white-space: nowrap; border-radius: 6px 6px 0 0; }
-.doc-tab:hover { color: var(--ink); background: var(--surface); }
-.doc-tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--focus); background: var(--surface); }
-.doc-tab:focus-visible, .panel:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+/* Tabs: one wide bar, equal-width tabs side by side (scrolls sideways on narrow screens) */
+.doc { --tab-band: #16203f; --tab-hover: #263468; }
+@media (prefers-color-scheme: dark) { .doc { --tab-band: #25316a; --tab-hover: #34448c; } }
+.doc-tabs { display: flex; overflow-x: auto; background: var(--tab-band); border-radius: 10px 10px 0 0; margin: 1.25rem 0 0; scrollbar-width: thin; }
+.doc-tab { flex: 1 0 7rem; display: flex; align-items: center; justify-content: center; text-align: center; min-height: 4.5rem; padding: .75rem .9rem; font: inherit; font-size: 1.1rem; font-weight: 600; line-height: 1.2; color: #fff; background: none; border: 0; border-right: 1px solid rgba(255,255,255,.14); cursor: pointer; transition: background .15s; }
+.doc-tab:last-child { border-right: 0; }
+.doc-tab:hover { background: var(--tab-hover); }
+.doc-tab[aria-selected="true"] { background: var(--paper); color: var(--ink); font-weight: 700; box-shadow: inset 0 4px 0 var(--focus); }
+.doc-tab:focus-visible { outline: 3px solid #fff; outline-offset: -5px; }
 .doc.tabbed .panel { padding-top: .25rem; }
 .panel-nav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--line); flex-wrap: wrap; }
 
