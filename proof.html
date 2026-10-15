@@ -128,7 +128,6 @@
 <div class="formula" role="math" aria-label="probability of at least one hit in n packs equals 1 minus (1 minus p) to the power n">
 <span>P(at least one hit in n packs) = 1 − (1 − p)<sup>n</sup></span>
 </div>
-<p>In Excel that’s <code>=1-(1-p)^n</code>, or <code>=1-BINOM.DIST(0, n, p, TRUE)</code>. Reported results don’t match it:</p>
 <div class="tablewrap"><table>
 <thead><tr><th scope="col">What we checked</th><th scope="col">Per-pack rate used</th><th scope="col">Random packs predict</th><th scope="col">Reported</th><th scope="col">Odds of this by luck</th></tr></thead>
 <tbody>
