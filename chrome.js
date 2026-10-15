@@ -15,6 +15,7 @@ export function mountChrome(active) {
         ${link('set', 'index.html', 'Single Set Results')}
         ${link('history', 'history.html', 'All Sets Overview')}
         ${link('compare', 'compare.html', 'Compare Results')}
+        ${link('proof', 'proof.html', 'Proof of the Data')}
         ${link('submit', 'submit.html', 'Report your pulls', 'cta')}
       </nav>
     </div>`;

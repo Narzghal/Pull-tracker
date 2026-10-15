@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proof of the Data</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Young+Serif&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="app" tabindex="-1">
+<div class="wrap doc" id="doc">
+
+<h1 class="page-title">How to Read Our Lorcana Pull Rates</h1>
+<p class="byline"><span class="chip">Oct 15, 2026</span> <span class="dot" aria-hidden="true">·</span> <span class="chip">@Chad</span></p>
+
+<div class="doc-tabs" id="doc-tabs" role="tablist" aria-label="Sections" hidden></div>
+
+<section class="panel" id="overview" data-tab="Overview">
+<p>Across five sets, from Archazia’s Island to Winterspell, sealed cases have reported steady rates: about 1 Enchanted per 96 packs, 1 Legendary per 5.7 and 1 Legendary Foil per 41. This page explains how we calculate those numbers, why some products report higher than others, and why box and case odds can’t be worked out from per-pack rates with simple math.</p>
+<p>This is a fan-made project, not affiliated with Ravensburger, which does not publish pull rates. Every number comes from community reports of sealed product in all languages except Japanese and Chinese.</p>
+
+<h2>The short version</h2>
+<ul>
+<li><strong>Chance per pack is our main number:</strong> cards pulled divided by packs opened.</li>
+<li><strong>Sealed cases are our baseline,</strong> and their rates have held steady for five sets.</li>
+<li><strong>Individual boxes and Troves report higher rates in every set,</strong> most likely because exciting pulls get reported more often.</li>
+<li><strong>Big hits are spread out, not scattered at random.</strong> Boxes almost never have two Enchanted, and almost every box has an Epic.</li>
+<li><strong>So box and case odds come from what people report,</strong> not from a per-pack formula.</li>
+<li><strong>Every report counts,</strong> including boxes and Troves with nothing in them.</li>
+</ul>
+</section>
+
+<section class="panel" id="chance-per-pack" data-tab="Chance per pack">
+<h2>Chance per pack is our main number</h2>
+<p>Chance per pack is the number of cards reported divided by the number of packs opened. “1 in X packs” is the same number flipped over.</p>
+<div class="formula" role="math" aria-label="chance per pack equals cards pulled divided by packs opened; 1 in X equals packs opened divided by cards pulled">
+<span>chance per pack = <span class="frac"><span>cards pulled</span><span>packs opened</span></span></span>
+<span>1 in X = <span class="frac"><span>packs opened</span><span>cards pulled</span></span></span>
+</div>
+<p>Example: Reign of Jafar sealed cases had 121 Enchanted in 125 cases (12,000 packs). That’s 12,000 ÷ 121 ≈ 1 Enchanted every 99 packs, or about 1.01% per pack.</p>
+<p>We report each set separately, because rates can change between sets.</p>
+</section>
+
+<section class="panel" id="five-sets" data-tab="Steady rates">
+<h2>Sealed-case rates have held steady for five sets</h2>
+<p>From Archazia’s Island through Winterspell, every rarity in sealed cases has landed in a narrow band: Enchanted 1 in 90–107 packs, Legendary 1 in 5.5–5.8, Legendary Foil 1 in 40–43 and Epic 1 in 16.</p>
+<p><strong>This is the backbone of the tracker.</strong> Five separate sets, opened and reported by different people, gave the same answer every time, across 694 sealed cases and more than 66,000 packs. Results that repeat like this reflect how the product is made, not luck or a handful of reporters.</p>
+<p>Sealed cases only, in packs per card (lower means more common):</p>
+<div class="tablewrap"><table>
+<thead><tr><th scope="col">Set</th><th scope="col">Cases</th><th scope="col">Enchanted</th><th scope="col">Legendary</th><th scope="col">Legendary Foil</th><th scope="col">Epic</th><th scope="col">Iconic</th></tr></thead>
+<tbody>
+<tr><td>Archazia’s Island</td><td>92</td><td>99</td><td>5.6</td><td>41</td><td></td><td></td></tr>
+<tr><td>Reign of Jafar</td><td>125</td><td>99</td><td>5.5</td><td>41</td><td></td><td></td></tr>
+<tr><td>Fabled</td><td>197</td><td>90</td><td>5.6</td><td>42</td><td>16</td><td>1,576</td></tr>
+<tr><td>Whispers in the Well</td><td>162</td><td>92</td><td>5.8</td><td>43</td><td>16</td><td>864</td></tr>
+<tr><td>Winterspell</td><td>118</td><td>107</td><td>5.7</td><td>40</td><td>16</td><td>1,259</td></tr>
+</tbody></table></div>
+<p>Why this consistency matters:</p>
+<ul>
+<li><strong>It rules out luck.</strong> The differences between sets are no bigger than chance alone would produce (see <em><a href="#how-sure" data-goto="how-sure">How sure we can be</a></em>).</li>
+<li><strong>It gives us a yardstick.</strong> A steady baseline is what lets us see that Troves and individual boxes report high, and that boxes are smoothed rather than random.</li>
+<li><strong>It makes real changes stand out.</strong> A new set that lands outside these bands is a genuine shift, not noise.</li>
+<li><strong>It’s the best estimate available.</strong> Ravensburger doesn’t publish pull rates, so five sets of matching sealed-case data are the most reliable numbers the community has.</li>
+</ul>
+<p>Epic and Iconic arrived with Fabled. Iconic swings more than the others because each set has only 9 to 18 of them in sealed cases (more on that below).</p>
+<p>Wilds Unknown is the first set to break this pattern, as the next section shows.</p>
+</section>
+
+<section class="panel" id="wilds-unknown" data-tab="Wilds Unknown">
+<h2>Wilds Unknown: a real change</h2>
+<p><strong>Every premium rarity jumped in Wilds Unknown.</strong> In sealed cases, Enchanted went from about 1 in 96 packs to 1 in 62, and Legendary from 1 in 5.7 to 1 in 3.8. These are the set’s final numbers. The jumps are far too big to be luck, and the pattern rules out reporting habits as the cause.</p>
+<p>Sealed cases, packs per card:</p>
+<div class="tablewrap"><table>
+<thead><tr><th scope="col">Rarity</th><th scope="col">Earlier sets</th><th scope="col">Wilds Unknown (95 cases)</th><th scope="col">Likely range for Wilds Unknown</th><th scope="col">How much more common</th><th scope="col">Odds this is luck</th></tr></thead>
+<tbody>
+<tr><td>Enchanted</td><td>1 in 96 (five sets)</td><td>1 in 62</td><td>1 in 53–74</td><td>about 55%</td><td>about 1 in 370,000</td></tr>
+<tr><td>Legendary</td><td>1 in 5.7 (five sets)</td><td>1 in 3.8</td><td>1 in 3.7–3.9</td><td>about 50%</td><td>effectively zero</td></tr>
+<tr><td>Epic</td><td>1 in 16 (three sets)</td><td>1 in 10.6</td><td>1 in 9.9–11.3</td><td>about 52%</td><td>effectively zero</td></tr>
+<tr><td>Legendary Foil</td><td>1 in 41 (five sets)</td><td>1 in 33</td><td>1 in 30–37</td><td>about 26%</td><td>about 1 in 3,000</td></tr>
+<tr><td>Iconic</td><td>1 in 1,170 (three sets)</td><td>1 in 829</td><td>1 in 460–1,660</td><td>about 42%</td><td>too few to tell (11 Iconics)</td></tr>
+</tbody></table></div>
+<p>Why we’re confident this is a real change and not reporting:</p>
+<ul>
+<li><strong>Sealed cases moved.</strong> The jump shows up in our least selectively reported product, not just in Troves and single boxes.</li>
+<li><strong>Every product moved together.</strong> Legendary per pack rose from about 18% to 27.5% in individual boxes, from about 19–21% to 29.8% in Troves, and from about 15–18% to 26.5% in bulk cases.</li>
+<li><strong>The whole box shifted.</strong> Earlier boxes bunched at 4 or 5 Legendaries. In Wilds Unknown, 68% of boxes had 6 or 7, and only 11% had 4 or 5. Reporting habits can thin out the extremes, but they can’t move the middle of every box by two cards.</li>
+<li><strong>The packing rules didn’t change, only the rates.</strong> Boxes are still smoothed: Legendary spread is about a quarter of what random packs give, and only 3 of 645 boxes had two Enchanted.</li>
+</ul>
+<p><strong>Going forward,</strong> use Wilds Unknown’s own rates for Wilds Unknown product and don’t blend them with earlier sets. Iconic is the one rarity where 11 cards aren’t enough to say whether it changed. While this tracker was unfortunately not used for Attack of The Vine, the proof is there that the rate change we saw in Wilds appears to be the new standard moving forward. We expect to see the same thing in Hyperia City.</p>
+</section>
+
+<section class="panel" id="baseline" data-tab="Baseline">
+<h2>Why sealed cases are our baseline</h2>
+<p>Sealed cases are the least likely to be reported selectively, because a whole case is opened and reported at once. Single boxes and Troves can be reported one at a time, and a box with an Enchanted is more exciting to share than one without.</p>
+<p>The clearest sign is that individual sealed boxes report more Enchanted than the boxes inside cases, and they have in every one of the five sets. They’re the same product, so packing can’t explain the difference. What gets reported can.</p>
+<figure class="chart">
+<img src="proof-chart-enchanted.png" width="1344" height="650" alt="Line chart titled “Sealed cases report the fewest Enchanted in every set, steady at about 1 per 96 packs”. Enchanted per pack by product, in release order, from Archazia’s Island to Winterspell. Sealed cases stay near 1% in every set (1 in 99, 1 in 99, 1 in 90, 1 in 92, 1 in 107). Individual boxes run a little higher, between about 1.3% and 1.5%. Troves run highest, from about 2.5% in Archazia’s Island down to about 1.5% in Winterspell." loading="lazy">
+<figcaption>Tracker reports, five sets, final numbers</figcaption>
+</figure>
+<p>The gap follows the excitement. Across the five sets, individual boxes reported roughly 20–40% more Enchanted than sealed cases, but only 2–8% more Legendaries. That is what selective reporting looks like: people decide whether to share based on the big pull.</p>
+<p>Troves show the same pattern, only stronger. They reported the most Enchanted per pack in every set: about 2.5 times the sealed-case rate in Archazia’s Island, narrowing to about 1.5 to 1.6 times in the last three sets. Our working assumption is that Trove rates are inflated by reporting. We can’t fully rule out that Troves are packed differently, but the most likely assumption is that Troves are filled with the same packs, and therefore the same odds, as all other product.</p>
+<p>Bulk reports, where several boxes or cases are logged as one total, usually run lowest of all, even for Legendary. In four of the five sets, bulk cases came in at about 15–16.5% per pack against 17–18% in sealed cases. Cards may get missed when tallying many products at once, or sealed-case reports may run slightly high. We keep bulk reports separate until we know which.</p>
+</section>
+
+<section class="panel" id="iconic" data-tab="Iconic">
+<h2>Iconic shows the reporting gap most clearly</h2>
+<p>Iconics are the rarest and most valuable pulls, so they’re where selective reporting should show most, and it does. In all three sets with Iconics, sealed cases report them far less often than Troves or individual boxes.</p>
+<p>Packs per Iconic (lower means more common):</p>
+<div class="tablewrap"><table>
+<thead><tr><th scope="col">Product</th><th scope="col">Fabled</th><th scope="col">Whispers in the Well</th><th scope="col">Winterspell</th></tr></thead>
+<tbody>
+<tr><td>Troves</td><td>253</td><td>652</td><td>525</td></tr>
+<tr><td>Individual sealed boxes</td><td>496</td><td>459</td><td>753</td></tr>
+<tr><td>Sealed cases</td><td>1,576</td><td>864</td><td>1,259</td></tr>
+<tr><td>All products</td><td>642</td><td>690</td><td>916</td></tr>
+</tbody></table></div>
+<p>Each cell rests on only 4 to 35 Iconics, so single numbers bounce around, but the order holds. Across the three sets, sealed cases logged 39 Iconics in 45,792 packs, about 1 in 1,170. Bulk case reports land close by, at 15 in 20,544 packs (about 1 in 1,370), while all products together give about 1 in 715.</p>
+</section>
+
+<section class="panel" id="smoothed" data-tab="Smoothed boxes">
+<h2>Our biggest finding: boxes are smoothed out, not random</h2>
+<p><strong>Packs are not independent random rolls.</strong> Almost every box gets at least one Epic, and almost no box gets two Enchanted. Big hits are spread across boxes far more evenly than chance allows.</p>
+<p>Think of it as dealing cards rather than rolling dice. Roll a die for every pack and some boxes get lucky streaks while others get nothing. Deal the hits out across the boxes and each box tends to get its share. Spreading doesn’t change how many cards there are, so per-pack rates still hold; it changes how they land in boxes and cases.</p>
+<p>If every pack were its own random roll, the chance of at least one hit in n packs, at a per-pack rate p, would be:</p>
+<div class="formula" role="math" aria-label="probability of at least one hit in n packs equals 1 minus (1 minus p) to the power n">
+<span>P(at least one hit in n packs) = 1 − (1 − p)<sup>n</sup></span>
+</div>
+<p>In Excel that’s <code>=1-(1-p)^n</code>, or <code>=1-BINOM.DIST(0, n, p, TRUE)</code>. Reported results don’t match it:</p>
+<div class="tablewrap"><table>
+<thead><tr><th scope="col">What we checked</th><th scope="col">Per-pack rate used</th><th scope="col">Random packs predict</th><th scope="col">Reported</th><th scope="col">Odds of this by luck</th></tr></thead>
+<tbody>
+<tr><td>Boxes with 2+ Enchanted, five sets (5,245 boxes)</td><td>each set’s own rate, 1 in 92–107</td><td>about 133 boxes (2.5%)</td><td>11 boxes (0.2%)</td><td>effectively zero</td></tr>
+<tr><td>Fabled boxes with no Epic (1,511 boxes)</td><td>1 in 16</td><td>about 21%</td><td>about 3% (50 boxes)</td><td>effectively zero</td></tr>
+<tr><td>Boxes with 0–2 Legendaries, five sets (2,358 boxes)</td><td>each set’s own rate, about 1 in 5.4–5.5</td><td>about 368 boxes (16%)</td><td>79 boxes (3.4%)</td><td>effectively zero</td></tr>
+<tr><td>Fabled Troves with 2+ Epics (659 Troves)</td><td>1 in 13.8, the Troves’ own rate</td><td>about 73 Troves (11%)</td><td>34 Troves (5%)</td><td>about 1 in 10 million</td></tr>
+</tbody></table></div>
+<p>The double-Enchanted limit shows up in every set, not just one:</p>
+<div class="tablewrap"><table>
+<thead><tr><th scope="col">Set</th><th scope="col">Boxes</th><th scope="col">Random packs predict</th><th scope="col">Reported</th></tr></thead>
+<tbody>
+<tr><td>Archazia’s Island</td><td>662</td><td>16</td><td>0</td></tr>
+<tr><td>Reign of Jafar</td><td>994</td><td>24</td><td>2</td></tr>
+<tr><td>Fabled</td><td>1,621</td><td>44</td><td>4</td></tr>
+<tr><td>Whispers in the Well</td><td>1,088</td><td>30</td><td>3</td></tr>
+<tr><td>Winterspell</td><td>880</td><td>19</td><td>2</td></tr>
+<tr><td>Wilds Unknown</td><td>645</td><td>37</td><td>3</td></tr>
+</tbody></table></div>
+<p>Boxes counts the boxes inside sealed cases plus individual sealed boxes. Even Wilds Unknown, where Enchanted are far more common, has had 3 double boxes where random packs would give about 37, so the one-per-box limit appears to have carried over.</p>
+<p>Every test points the same way, and selective reporting can’t explain them. Reporting bias makes exciting boxes more common, yet double-Enchanted boxes are far rarer than chance. Sealed cases, our least selectively reported product, show the same pattern as individual boxes: 3.0% of case boxes had no Epic, against 3.6% of individual boxes. Even Troves are smoothed out.</p>
+<figure class="chart">
+<img src="proof-chart-legendary-boxes.png" width="1344" height="720" alt="Bar chart titled “Two in three boxes had 4 or 5 Legendaries, far more than random packs would give”. 724 individual sealed boxes from Fabled, by number of Legendaries pulled. Reported boxes bunch around 4 and 5 Legendaries: 67% of boxes reported, against 39% if every pack were a random roll (1 Legendary per 5.62 packs). The random-roll curve is much flatter and wider." loading="lazy">
+<figcaption>Tracker reports · Fabled, 724 individual sealed boxes (final) · random model: 24 packs at 1 Legendary per 5.62 packs</figcaption>
+</figure>
+<p>Legendaries show it most clearly, because there are so many of them. Box counts bunch tightly around 4 and 5, with less than half the spread random packs would give. The same holds in all five sets, Archazia’s Island through Winterspell: 63–68% of boxes had 4 or 5 Legendaries, against about 40% for random packs, and the spread was 36–44% of what random packs give.</p>
+<p><strong>Cases are smoothed too, most strongly in the first two sets.</strong> Every set had more sealed cases with an Enchanted than random packs would give. In Archazia’s Island and Reign of Jafar, Enchanted were spread almost one per case. Since Fabled, cases look like each box gets at most one Enchanted, with the four boxes otherwise independent.</p>
+<div class="tablewrap"><table>
+<thead><tr><th scope="col">Set</th><th scope="col">Sealed cases</th><th scope="col">Cases with an Enchanted</th><th scope="col">If packs were random</th><th scope="col">If each box held at most one</th></tr></thead>
+<tbody>
+<tr><td>Archazia’s Island</td><td>92</td><td>87%</td><td>62%</td><td>67%</td></tr>
+<tr><td>Reign of Jafar</td><td>125</td><td>82%</td><td>62%</td><td>67%</td></tr>
+<tr><td>Fabled</td><td>197</td><td>76%</td><td>66%</td><td>71%</td></tr>
+<tr><td>Whispers in the Well</td><td>162</td><td>73%</td><td>65%</td><td>70%</td></tr>
+<tr><td>Winterspell</td><td>118</td><td>67%</td><td>59%</td><td>64%</td></tr>
+</tbody></table></div>
+<p>The clearest sign is how often a case has two Enchanted. Random packing gives about one double for every two singles. Archazia’s Island and Reign of Jafar had about one for every seven, while the last three sets are back near one for every two. Reporting habits can’t change that ratio, so the way Enchanted are spread across a case appears to have changed around Fabled, the set that added Epic and Iconic.</p>
+<p>What this means for you:</p>
+<ul>
+<li>A box is more likely to have an Epic, and a case more likely to have an Enchanted, than the formula says.</li>
+<li>Doubles are rarer than the formula says. About 1 box in 500 has had two Enchanted.</li>
+<li>A full box gives steadier results than 24 loose packs from different boxes: the same average, with fewer extremes either way.</li>
+<li>For boxes and cases, we show the share of reported boxes and cases that actually hit. The formula is only a “what if packs were random” comparison.</li>
+<li>Reported box and case results can still run a little high because of selective reporting, so treat them as close, not exact.</li>
+</ul>
+</section>
+
+<section class="panel" id="how-sure" data-tab="How sure we can be">
+<h2>How sure we can be</h2>
+<p>Five sets and more than 165,000 reported packs pin down common cards tightly and rare cards more loosely, and the set-to-set differences in sealed cases are no bigger than chance alone would produce. For a rate p measured over n packs, the 95% margin of error is roughly:</p>
+<div class="formula" role="math" aria-label="margin of error is approximately 1.96 times the square root of p times (1 minus p), divided by n">
+<span>margin of error ≈ 1.96 × <span class="rad"><span class="rad-sign">√</span><span class="radicand"><span class="frac"><span>p (1 − p)</span><span>n</span></span></span></span></span>
+</div>
+<p>What we’ve collected so far:</p>
+<div class="tablewrap"><table>
+<thead><tr><th scope="col">Set</th><th scope="col">Packs reported, all products</th><th scope="col">Sealed cases</th><th scope="col">Sealed-case packs</th><th scope="col">Enchanted in sealed cases</th></tr></thead>
+<tbody>
+<tr><td>Archazia’s Island</td><td>18,544</td><td>92</td><td>8,832</td><td>89</td></tr>
+<tr><td>Reign of Jafar</td><td>31,528</td><td>125</td><td>12,000</td><td>121</td></tr>
+<tr><td>Fabled</td><td>49,432</td><td>197</td><td>18,912</td><td>209</td></tr>
+<tr><td>Whispers in the Well</td><td>36,592</td><td>162</td><td>15,552</td><td>169</td></tr>
+<tr><td>Winterspell</td><td>31,160</td><td>118</td><td>11,328</td><td>106</td></tr>
+<tr class="total"><td>All five sets</td><td>167,256</td><td>694</td><td>66,624</td><td>694</td></tr>
+</tbody></table></div>
+<p>The margin of error depends on how many cards have been seen, not on how many packs were printed. A handy rule: it’s about 2 ÷ √(cards seen), as a share of the rate. 100 Enchanted gives about ±20%, and 400 gives about ±10%.</p>
+<ul>
+<li><strong>Legendary:</strong> 1,574 to 3,362 found in sealed cases per set, so each set’s rate is pinned within about ±3–5%.</li>
+<li><strong>Legendary Foil:</strong> 218 to 449 per set, about ±9–13%.</li>
+<li><strong>Enchanted:</strong> 89 to 209 per set, about ±13–21%. All five sets together (694 Enchanted) narrow it to about ±7%, or 1 in 89 to 1 in 104 packs.</li>
+<li><strong>Iconic, three sets of sealed cases:</strong> 39 Iconics in 45,792 packs is about 1 in 1,170. With so few cards, the likely range runs from about 1 in 860 to 1 in 1,650 packs. One set alone is far less certain: Fabled’s 12 case Iconics fit anywhere from about 1 in 900 to 1 in 3,050.</li>
+</ul>
+<figure class="chart">
+<img src="proof-chart-margins.png" width="1344" height="670" alt="Chart titled “Five sets agree within their margins of error; Wilds Unknown stands apart”. Enchanted per pack in sealed cases, with the 95% margin of error for each set. Archazia’s Island 1 in 99 (92 cases, 1 in 82–125), Reign of Jafar 1 in 99 (125 cases, 1 in 84–121), Fabled 1 in 90 (197 cases, 1 in 80–105), Whispers in the Well 1 in 92 (162 cases, 1 in 80–108), Winterspell 1 in 107 (118 cases, 1 in 90–132). All five sit close to the five-set average of 1 in 96. Wilds Unknown is 1 in 62 (95 cases, 1 in 53–74), clearly above the others." loading="lazy">
+<figcaption>Tracker reports, sealed cases only · 95% margin of error from the formula above · final numbers for all six sets</figcaption>
+</figure>
+<p>What that means:</p>
+<ul>
+<li><strong>The sets agree.</strong> If all five shared exactly the same rates, gaps this size would show up most of the time (consistency test: p = 0.65 for Enchanted, 0.39 for Legendary, 0.90 for Legendary Foil). So 1 in 90 versus 1 in 107 is noise, not a change in per-pack rate.</li>
+<li><strong>A real change stands out.</strong> Wilds Unknown’s rate sits outside every earlier set’s range, which is why we treat it as a genuine shift.</li>
+<li><strong>Tighter single-set numbers take more cases.</strong> Pinning one set’s Enchanted rate to ±10% takes about 385 Enchanted, roughly 385 sealed cases.</li>
+<li><strong>These ranges cover luck only.</strong> They treat every pack as independent. Because cards are spread out evenly, the true random error is probably a little smaller than shown.</li>
+</ul>
+<p>More reports shrink random noise, but they can’t fix selective reporting. If mostly exciting pulls get reported, a bigger pile of reports just gives a more precise wrong number. That’s why reporting everything matters more than reporting more.</p>
+</section>
+
+<section class="panel" id="help" data-tab="How you can help">
+<h2>How you can help</h2>
+<p>The most useful report is a complete one, especially when nothing exciting came out.</p>
+<ul>
+<li>Report every sealed product you open, including boxes and Troves with no big hits.</li>
+<li>Report the whole box or case, not just the packs that hit.</li>
+<li>If you opened several products, submit all of them, even if only one was good.</li>
+<li>Make sure to tell everyone you know who opens Lorcana product to report their results!</li>
+</ul>
+</section>
+
+</div>
+</main>
+<script type="module" src="proof.js"></script>
+</body>
+</html>

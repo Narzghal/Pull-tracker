@@ -128,3 +128,10 @@ export function showError(el, err, retry) {
   el.innerHTML = `<div class="notice error" role="alert"><p><strong>Couldn't load the data.</strong> ${esc(err && err.message ? err.message : 'Something went wrong.')}</p>${retry ? '<p><button class="btn" type="button" id="retry">Try again</button></p>' : ''}</div>`;
   if (retry) el.querySelector('#retry').addEventListener('click', retry);
 }
+
+// A link to the "Proof of the Data" page, shown on the results pages.
+export const proofCard = () => `<aside class="proof-card" aria-label="Proof of the Data">
+  <div><h3>Proof of the Data</h3>
+  <p>Wondering how these numbers are worked out, or why we trust them? Read how chance per pack is calculated, why sealed cases are our baseline, the evidence that Wilds Unknown's rates really changed, and how sure we can be.</p></div>
+  <a class="btn" href="proof.html">Read the Proof of the Data</a>
+</aside>`;

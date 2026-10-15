@@ -4,7 +4,7 @@ import { mountChrome } from './chrome.js';
 import { SITE_NAME } from './config.js';
 import {
   RARITIES, trackedOf, RARITY_CLASS, FILL_CLASS, THIN, SET_ORDER, setLabel, currentSet, DASH, esc, num, fmtInt, fmtAmt, fmtPct, fmtPPC, fmtDate, hueFor,
-  buildTable, sortProducts, resultsPublic, WAIT_MESSAGE, binomPmf, atLeast, baselineRates, histFor, histStats, showError,
+  buildTable, sortProducts, resultsPublic, WAIT_MESSAGE, proofCard, binomPmf, atLeast, baselineRates, histFor, histStats, showError,
 } from './lib.js';
 import { pie, histChart } from './charts.js';
 
@@ -81,7 +81,7 @@ function render({ sets, set, products, totals, hist, stats, reports, last }) {
       : `<h2>No pulls were collected</h2><p>This set is view only, and no pulls were collected for it.</p>`;
     return;
   }
-  if (!open) { body.innerHTML = `<h2>Results coming soon</h2><p class="notice">${esc(WAIT_MESSAGE)}</p>`; return; }
+  if (!open) { body.innerHTML = `<h2>Results coming soon</h2><p class="notice">${esc(WAIT_MESSAGE)}</p>${proofCard()}`; return; }
 
   body.innerHTML = `
     <h2>Pulls by product</h2>
@@ -102,7 +102,8 @@ function render({ sets, set, products, totals, hist, stats, reports, last }) {
 
 
     <h2>Where the data comes from</h2>
-    <div class="two" id="pies"></div>`;
+    <div class="two" id="pies"></div>
+    ${proofCard()}`;
 
   // Column view: on narrow screens start with one group; on wide screens show everything.
   const table = document.getElementById('main');

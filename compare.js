@@ -2,7 +2,7 @@
 import { get, count } from './api.js';
 import { mountChrome } from './chrome.js';
 import { SITE_NAME } from './config.js';
-import { resultsPublic, RARITIES, trackedOf, THIN, DASH, esc, num, fmtInt, fmtPct, fmtPPC, showError, SET_ORDER, setLabel } from './lib.js';
+import { resultsPublic, proofCard, RARITIES, trackedOf, THIN, DASH, esc, num, fmtInt, fmtPct, fmtPPC, showError, SET_ORDER, setLabel } from './lib.js';
 import { groupedBars, bg } from './charts.js';
 
 const app = document.getElementById('app');
@@ -38,6 +38,7 @@ function shell() {
     <h1 class="page-title">Compare sets</h1>
     <p class="muted">Pick the sets to compare. Rates are per pack, so a set with fewer reports can still be compared fairly, though small samples are less certain.</p>
     <div class="notice"><p><strong>Keep in mind:</strong> starting with Wilds Unknown (set 12), pull rates changed noticeably. There is enough evidence to show the change was intentional on the packaging side. Be careful when comparing sets before Wilds Unknown with Wilds Unknown and later sets, because they were not produced the same way.</p></div>
+    ${proofCard()}
     <fieldset><legend>Sets</legend><div class="checks" id="setchecks">${st.sets.map((s) =>
       `<label><input type="checkbox" value="${s.id}"${st.picked.has(s.id) ? ' checked' : ''}> ${esc(setLabel(s))}</label>`).join('')}</div></fieldset>
     <div class="seg" role="group" aria-label="Rarity" id="rseg">${RARITIES.map((r) => `<button type="button" data-r="${r.key}" aria-pressed="false">${r.label}</button>`).join('')}</div>
