@@ -165,6 +165,7 @@ function entryHTML(entry) {
       <input type="number" inputmode="numeric" min="2" step="1" data-id="${entry.id}" data-qty="1" value="${esc(entry.qty)}"></label>
       <p class="muted small">Enter the combined total for all of them.</p>` : ''}
     <div class="counts">${rowsHTML}</div>
+    ${RARITIES.some((r) => r.key === 'legendary_foil') ? `<p class="muted small foil-note">The “Legendary” box is for ALL Legendary cards, both foil and non-foil, then indicate in the “Legendary Foil” box how many of those were Foil.</p>` : ''}
     <p class="field-error" id="err-${entry.id}" role="alert">${esc(err || '')}</p>
   </fieldset>`;
 }
