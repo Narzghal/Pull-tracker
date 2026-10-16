@@ -125,7 +125,8 @@ async function reviewPanel(p) {
     for (const part of [S.filter.set && `set_id=eq.${S.filter.set}`, S.filter.status !== 'all' && `status=eq.${S.filter.status}`].filter(Boolean)) { q += '&' + part; cq += '&' + part; }
     const [subs, total] = await Promise.all([get(q, { auth: true }), count(cq, { auth: true })]);
     S.total = total;
-    let shown = subs.map((s) => ({ ...s, flags: flagsFor(s) }));
+    const nums = await numberBySet(subs);
+    let shown = subs.map((s) => ({ ...s, flags: flagsFor(s), num: nums.get(s.id) }));
     if (S.filter.flagged) shown = shown.filter((s) => s.flags.length);
     p.querySelector('#list').innerHTML = shown.length ? shown.map(subHTML).join('') : '<p class="muted">Nothing to show.</p>';
     p.querySelector('#pager').innerHTML = `<span class="muted small">Showing ${S.page * PAGE + (subs.length ? 1 : 0)}-${S.page * PAGE + subs.length} of ${total}</span>
@@ -134,6 +135,21 @@ async function reviewPanel(p) {
     p.querySelector('#nx').onclick = () => { S.page++; reviewPanel(p); };
     p.querySelector('#list').onclick = onAction;
   } catch (e) { fail(e); }
+}
+
+// Report numbers count within each set (1, 2, 3...) rather than across the whole site. Hidden reports keep their number.
+async function numberBySet(subs) {
+  const nums = new Map();
+  const bySet = new Map();
+  for (const s of subs) { if (!bySet.has(s.set_id)) bySet.set(s.set_id, []); bySet.get(s.set_id).push(s.id); }
+  await Promise.all([...bySet].map(async ([sid, ids]) => {
+    const lo = Math.min(...ids), hi = Math.max(...ids);
+    const [before, inRange] = await Promise.all([
+      count(`submissions?select=id&set_id=eq.${sid}&id=lt.${lo}`, { auth: true }),
+      get(`submissions?select=id&set_id=eq.${sid}&id=gte.${lo}&id=lte.${hi}&order=id.asc&limit=1000`, { auth: true })]);
+    inRange.forEach((x, i) => nums.set(x.id, before + i + 1));
+  }));
+  return nums;
 }
 
 function subHTML(s) {
@@ -149,7 +165,7 @@ function subHTML(s) {
     `<li>${g.is_bulk ? `Bulk, ${g.quantity} × ` : ''}${esc(prodName(g.product_id))}: ${RARITIES.map((x) => `${g[x.key]} ${x.label}`).join(', ')} <span class="muted">(${g.packs} packs)</span></li>`).join('');
   const hidden = s.status === 'hidden';
   return `<div class="sub${s.flags.length ? ' flagged' : ''}${hidden ? ' hidden-sub' : ''}" data-id="${s.id}">
-    <div class="sub-head"><strong>#${s.id} · ${esc(setName(s.set_id))}${(s.reports || []).some((r) => r.is_summary) ? ' · Imported totals' : ''}</strong><span class="muted small">${esc(fmtDate(s.created_at))}${hidden ? ' · hidden' : ''}</span></div>
+    <div class="sub-head"><strong title="Database ID ${s.id}">#${s.num ?? s.id} · ${esc(setName(s.set_id))}${(s.reports || []).some((r) => r.is_summary) ? ' · Imported totals' : ''}</strong><span class="muted small">${esc(fmtDate(s.created_at))}${hidden ? ' · hidden' : ''}</span></div>
     ${s.flags.length ? `<p class="flag">Unusual: ${esc(s.flags.join('; '))}</p>` : ''}
     <ul>${lines}</ul>
     <div class="row-actions">
@@ -207,6 +223,8 @@ function setsPanel(p) {
       <div class="checks">
         <label><input type="checkbox" data-accept="${s.id}"${s.accepting_submissions ? ' checked' : ''}> Collecting data</label>
         <span class="muted small">${s.accepting_submissions ? 'Open: people can send reports.' : 'View only.'}</span></div>
+      <div class="form-row"><label>Name <input type="text" maxlength="60" data-name="${s.id}" value="${esc(s.name)}"></label>
+        <label>Release date <input type="date" data-date="${s.id}" value="${esc(s.released_on || '')}"></label></div>
       <div class="form-row"><label>Set number <input type="number" min="1" step="1" data-num="${s.id}" value="${s.set_number ?? ''}"></label>
         <label>Responses from earlier tracking <input type="number" min="0" step="1" data-rc="${s.id}" value="${s.reported_count ?? ''}"></label>
         <label>Banner color <input type="color" data-color="${s.id}" value="${esc(s.accent_color || '#2f6fdb')}"></label>
@@ -257,6 +275,11 @@ function setsPanel(p) {
       }
       if (el.dataset.accept) { await patch(`sets?id=eq.${el.dataset.accept}`, { accepting_submissions: el.checked }); await loadBase(); setsPanel(p); flash(el.checked ? 'Collecting data again for this set.' : 'This set is now view only.'); return; }
       else if (el.dataset.color) { await patch(`sets?id=eq.${el.dataset.color}`, { accent_color: el.value }); await loadBase(); setsPanel(p); flash('Banner color saved.'); return; }
+      else if (el.dataset.name) {
+        const v = el.value.trim();
+        if (!v) { flash('The name can\'t be empty.', true); return; }
+        await patch(`sets?id=eq.${el.dataset.name}`, { name: v }); await loadBase(); setsPanel(p); flash('Name saved.'); return; }
+      else if (el.dataset.date) { await patch(`sets?id=eq.${el.dataset.date}`, { released_on: el.value || null }); await loadBase(); setsPanel(p); flash('Release date saved.'); return; }
       else if (el.dataset.rc) { await patch(`sets?id=eq.${el.dataset.rc}`, { reported_count: el.value === '' ? null : Number(el.value) }); await loadBase(); setsPanel(p); flash('Saved.'); return; }
       else if (el.dataset.num) { await patch(`sets?id=eq.${el.dataset.num}`, { set_number: el.value ? Number(el.value) : null }); await loadBase(); setsPanel(p); flash('Saved.'); return; }
       else if (el.dataset.tr) {
@@ -320,8 +343,9 @@ function productsPanel(p) {
   p.innerHTML = `
     <h2>Products</h2>
     ${S.products.length && !('image_path' in S.products[0]) ? '<p class="notice error">To add product pictures, run <code>add-product-images.sql</code> in Supabase first, then reload this page.</p>' : '<p class="muted small">A picture for each product shows on the report form. Pick an image and it uploads right away.</p>'}
-    <div class="tablewrap"><table><thead><tr><th scope="col">Name</th><th scope="col">Picture</th><th scope="col">Packs each</th><th scope="col">Boxes reported separately</th><th scope="col">Counts as boxes</th><th scope="col">Bulk allowed</th></tr></thead>
-    <tbody>${S.products.map((pr) => `<tr><td>${esc(pr.name)}</td><td>${productPicHTML(pr)}</td><td class="n">${pr.packs_per_item}</td><td class="n">${pr.slots_per_item}</td><td class="n">${pr.box_equivalents}</td><td class="n">${pr.allows_bulk ? 'Yes' : 'No'}</td></tr>`).join('')}</tbody></table></div>
+    <div class="tablewrap"><table><thead><tr><th scope="col">Name</th><th scope="col">Picture</th><th scope="col">Packs each</th><th scope="col">Boxes reported separately</th><th scope="col">Counts as boxes</th><th scope="col">Bulk allowed</th><th scope="col"><span class="sr-only">Save</span></th></tr></thead>
+    <tbody>${S.products.map((pr) => `<tr data-prow="${pr.id}"><td><input type="text" maxlength="60" data-pf="name" value="${esc(pr.name)}" aria-label="Name"></td><td>${productPicHTML(pr)}</td><td><input type="number" min="1" step="1" data-pf="packs" value="${pr.packs_per_item}" aria-label="Packs each"></td><td><input type="number" min="1" step="1" data-pf="slots" value="${pr.slots_per_item}" aria-label="Boxes reported separately"></td><td><input type="number" min="0" step="1" data-pf="box" value="${pr.box_equivalents}" aria-label="Counts as boxes"></td><td><input type="checkbox" data-pf="bulk"${pr.allows_bulk ? ' checked' : ''} aria-label="Bulk allowed"></td><td><button class="btn small" type="button" data-saveprod="${pr.id}">Save</button></td></tr>`).join('')}</tbody></table></div>
+    <p class="muted small">Change a product's details above and press Save on its row. Reports already sent keep the numbers they were sent with, so only change packs or boxes if a product was set up wrong.</p>
     <h2>Add a product</h2>
     <p class="muted">After adding it, switch it on for a set in the Sets tab.</p>
     <form id="np"><div class="form-row">
@@ -348,6 +372,16 @@ function productsPanel(p) {
     } catch (err) { fail(err); }
   };
   p.onclick = async (e) => {
+    const sv = e.target.closest('[data-saveprod]');
+    if (sv) {
+      const row = sv.closest('tr'), f = (k) => row.querySelector(`[data-pf="${k}"]`);
+      const name = f('name').value.trim(), packs = Number(f('packs').value), slots = Number(f('slots').value), box = Number(f('box').value);
+      if (!name) return flash('Enter a name.', true);
+      if (!(packs >= 1) || !(slots >= 1) || !(box >= 0)) return flash('Check the numbers: packs and separate results must be at least 1.', true);
+      if (packs % slots !== 0) return flash('Packs must divide evenly by the number of separate results.', true);
+      try { await patch(`products?id=eq.${sv.dataset.saveprod}`, { name, packs_per_item: packs, slots_per_item: slots, box_equivalents: box, allows_bulk: f('bulk').checked }); await loadBase(); productsPanel(p); flash(`${name} saved.`); } catch (err) { fail(err); }
+      return;
+    }
     const b = e.target.closest('[data-clearppic]');
     if (!b) return;
     const pr = S.products.find((x) => x.id === Number(b.dataset.clearppic));
